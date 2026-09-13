@@ -1,0 +1,3027 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "8"
+        },
+        "name": "delivery",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 2,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "delivery"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "86f13c2f-a18d-433a-9b06-a6e66e37cbd0/5",
+              "kubectl.kubernetes.io/restartedAt": "2026-09-12T19:49:58-05:00"
+            },
+            "labels": {
+              "app": "delivery"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "envFrom": [
+                  {
+                    "configMapRef": {
+                      "name": "delivery-config"
+                    }
+                  }
+                ],
+                "image": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery@sha256:cbebc4265b947ad246ba70a1d7b8869ea63342a8726d3b3201832e6383043054",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "node",
+                      "--import",
+                      "tsx",
+                      "scripts/admin.ts",
+                      "live"
+                    ]
+                  },
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 30,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 8
+                },
+                "name": "app",
+                "ports": [
+                  {
+                    "containerPort": 8443,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "node",
+                      "--import",
+                      "tsx",
+                      "scripts/admin.ts",
+                      "health"
+                    ]
+                  },
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 15,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 8
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "768Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  },
+                  {
+                    "mountPath": "/secrets/database",
+                    "name": "database",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/secrets/oidc",
+                    "name": "oidc",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/secrets/s3",
+                    "name": "s3",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/secrets/graph",
+                    "name": "graph",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/trust/service",
+                    "name": "service-ca",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/trust/external",
+                    "name": "external-ca",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "imagePullSecrets": [
+              {
+                "name": "test-registry-push"
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "delivery",
+            "serviceAccountName": "delivery",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "64Mi"
+                },
+                "name": "tmp"
+              },
+              {
+                "name": "database",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-database"
+                }
+              },
+              {
+                "name": "oidc",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-oidc"
+                }
+              },
+              {
+                "name": "s3",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-s3"
+                }
+              },
+              {
+                "name": "graph",
+                "secret": {
+                  "defaultMode": 288,
+                  "optional": true,
+                  "secretName": "delivery-graph"
+                }
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-app-cert-manager-tls"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "delivery-internal-trust"
+                },
+                "name": "service-ca"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "delivery-external-ca"
+                },
+                "name": "external-ca"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "3"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-identity",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "test-identity"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "9a638db7-e654-48fb-9906-248af827a2bc/1"
+            },
+            "labels": {
+              "app": "test-identity"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "command": [
+                  "/opt/keycloak/bin/kc.sh",
+                  "start",
+                  "--import-realm"
+                ],
+                "env": [
+                  {
+                    "name": "KC_HOSTNAME",
+                    "value": "https://identity-secure-delivery-test.apps.acm.sharkbait.tech"
+                  },
+                  {
+                    "name": "KC_HOSTNAME_STRICT",
+                    "value": "true"
+                  },
+                  {
+                    "name": "KC_HTTP_ENABLED",
+                    "value": "false"
+                  },
+                  {
+                    "name": "KC_PROXY_HEADERS",
+                    "value": "xforwarded"
+                  },
+                  {
+                    "name": "KC_HTTPS_CERTIFICATE_FILE",
+                    "value": "/tls/tls.crt"
+                  },
+                  {
+                    "name": "KC_HTTPS_CERTIFICATE_KEY_FILE",
+                    "value": "/tls/tls.key"
+                  },
+                  {
+                    "name": "KC_DB",
+                    "value": "postgres"
+                  },
+                  {
+                    "name": "KC_DB_URL",
+                    "value": "jdbc:postgresql://delivery-postgres.secure-delivery-test.svc:5432/keycloak?sslmode=verify-full&sslrootcert=/trust/service-ca.crt"
+                  },
+                  {
+                    "name": "KC_DB_USERNAME",
+                    "value": "keycloak"
+                  },
+                  {
+                    "name": "KC_DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "password",
+                        "name": "test-identity-database"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KC_LOG_LEVEL",
+                    "value": "warn"
+                  }
+                ],
+                "image": "registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "identity",
+                "ports": [
+                  {
+                    "containerPort": 8443,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 8443
+                  },
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "768Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/opt/keycloak",
+                    "name": "runtime"
+                  },
+                  {
+                    "mountPath": "/opt/keycloak/data/import",
+                    "name": "realm",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/trust",
+                    "name": "trust",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "initContainers": [
+              {
+                "command": [
+                  "/bin/bash",
+                  "-ec",
+                  "cp -R /opt/keycloak/. /work/"
+                ],
+                "image": "registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "prepare-runtime",
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/work",
+                    "name": "runtime"
+                  }
+                ]
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "test-identity",
+            "serviceAccountName": "test-identity",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "emptyDir": {
+                  "sizeLimit": "1Gi"
+                },
+                "name": "runtime"
+              },
+              {
+                "name": "realm",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "test-identity-realm"
+                }
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "test-identity-cert-manager-tls"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "delivery-internal-trust"
+                },
+                "name": "trust"
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "128Mi"
+                },
+                "name": "tmp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "2"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-registry",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "test-registry"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "26fb8919-b613-4da2-bf87-59dd951104f6/1"
+            },
+            "labels": {
+              "app": "test-registry"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "REGISTRY_HTTP_ADDR",
+                    "value": ":5000"
+                  },
+                  {
+                    "name": "REGISTRY_HTTP_TLS_CERTIFICATE",
+                    "value": "/tls/tls.crt"
+                  },
+                  {
+                    "name": "REGISTRY_HTTP_TLS_KEY",
+                    "value": "/tls/tls.key"
+                  },
+                  {
+                    "name": "REGISTRY_HTTP_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "http-secret",
+                        "name": "test-registry-auth"
+                      }
+                    }
+                  },
+                  {
+                    "name": "REGISTRY_AUTH",
+                    "value": "htpasswd"
+                  },
+                  {
+                    "name": "REGISTRY_AUTH_HTPASSWD_REALM",
+                    "value": "Secure Delivery test registry"
+                  },
+                  {
+                    "name": "REGISTRY_AUTH_HTPASSWD_PATH",
+                    "value": "/auth/htpasswd"
+                  },
+                  {
+                    "name": "REGISTRY_LOG_LEVEL",
+                    "value": "error"
+                  },
+                  {
+                    "name": "OTEL_TRACES_EXPORTER",
+                    "value": "none"
+                  }
+                ],
+                "image": "docker.io/library/registry:3@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "registry",
+                "ports": [
+                  {
+                    "containerPort": 5000,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 5000
+                  },
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/var/lib/registry",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/auth",
+                    "name": "auth",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "test-registry",
+            "serviceAccountName": "test-registry",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "test-registry"
+                }
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "test-registry-cert-manager-tls"
+                }
+              },
+              {
+                "name": "auth",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "test-registry-auth"
+                }
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "32Mi"
+                },
+                "name": "tmp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-postgres",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "persistentVolumeClaimRetentionPolicy": {
+          "whenDeleted": "Retain",
+          "whenScaled": "Retain"
+        },
+        "podManagementPolicy": "OrderedReady",
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "delivery-postgres"
+          }
+        },
+        "serviceName": "delivery-postgres",
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "1a48540c-dfa3-41cb-be2d-c5d505242f0b/1"
+            },
+            "labels": {
+              "app": "delivery-postgres"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "PGDATA",
+                    "value": "/var/lib/postgresql/data/pgdata"
+                  },
+                  {
+                    "name": "POSTGRES_DB",
+                    "value": "delivery"
+                  },
+                  {
+                    "name": "POSTGRES_USER",
+                    "value": "postgres"
+                  },
+                  {
+                    "name": "POSTGRES_PASSWORD_FILE",
+                    "value": "/admin-secret/password"
+                  },
+                  {
+                    "name": "POSTGRES_INITDB_ARGS",
+                    "value": "--auth-host=scram-sha-256"
+                  }
+                ],
+                "image": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery-postgres@sha256:1cf5817ed0b926822924ee41ceac4c86e05fb49b40296a68168ace752d1b6a81",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "postgres",
+                "ports": [
+                  {
+                    "containerPort": 5432,
+                    "name": "postgres",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": "postgres"
+                  },
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/backup-secret",
+                    "name": "backup-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/var/lib/postgresql/data",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  },
+                  {
+                    "mountPath": "/var/run/postgresql",
+                    "name": "socket"
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/config",
+                    "name": "config",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/admin-secret",
+                    "name": "admin-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/app-secret",
+                    "name": "app-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/docker-entrypoint-initdb.d/20-test-identity.sh",
+                    "name": "identity-db-init",
+                    "readOnly": true,
+                    "subPath": "20-test-identity.sh"
+                  },
+                  {
+                    "mountPath": "/test-identity-secret",
+                    "name": "identity-secret",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "imagePullSecrets": [
+              {
+                "name": "test-registry-push"
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "delivery-db",
+            "serviceAccountName": "delivery-db",
+            "terminationGracePeriodSeconds": 90,
+            "volumes": [
+              {
+                "name": "backup-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-backup"
+                }
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "128Mi"
+                },
+                "name": "tmp"
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "16Mi"
+                },
+                "name": "socket"
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-postgres-cert-manager-tls"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "delivery-postgres-config"
+                },
+                "name": "config"
+              },
+              {
+                "name": "admin-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-postgres-admin"
+                }
+              },
+              {
+                "name": "app-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "delivery-database"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 365,
+                  "name": "test-identity-db-init"
+                },
+                "name": "identity-db-init"
+              },
+              {
+                "name": "identity-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "test-identity-database"
+                }
+              }
+            ]
+          }
+        },
+        "updateStrategy": {
+          "rollingUpdate": {
+            "partition": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "volumeClaimTemplates": [
+          {
+            "apiVersion": "v1",
+            "kind": "PersistentVolumeClaim",
+            "metadata": {
+              "name": "data"
+            },
+            "spec": {
+              "accessModes": [
+                "ReadWriteOnce"
+              ],
+              "resources": {
+                "requests": {
+                  "storage": "10Gi"
+                }
+              },
+              "storageClassName": "ocs-storagecluster-ceph-rbd",
+              "volumeMode": "Filesystem"
+            },
+            "status": {
+              "phase": "Pending"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "service.alpha.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314",
+          "service.beta.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314"
+        },
+        "labels": {
+          "app": "delivery"
+        },
+        "name": "delivery",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "clusterIP": "172.30.113.8",
+        "clusterIPs": [
+          "172.30.113.8"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "https",
+            "port": 8443,
+            "protocol": "TCP",
+            "targetPort": "https"
+          }
+        ],
+        "selector": {
+          "app": "delivery"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "service.alpha.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314",
+          "service.beta.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314"
+        },
+        "name": "delivery-postgres",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "clusterIP": "172.30.232.74",
+        "clusterIPs": [
+          "172.30.232.74"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "postgres",
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "app": "delivery-postgres"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "service.alpha.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314",
+          "service.beta.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-identity",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "clusterIP": "172.30.67.250",
+        "clusterIPs": [
+          "172.30.67.250"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "https",
+            "port": 8443,
+            "protocol": "TCP",
+            "targetPort": 8443
+          }
+        ],
+        "selector": {
+          "app": "test-identity"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {
+          "service.alpha.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314",
+          "service.beta.openshift.io/serving-cert-signed-by": "openshift-service-serving-signer@1787420314"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-registry",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "clusterIP": "172.30.1.39",
+        "clusterIPs": [
+          "172.30.1.39"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "https",
+            "port": 5000,
+            "protocol": "TCP",
+            "targetPort": 5000
+          }
+        ],
+        "selector": {
+          "app": "test-registry"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-1-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-1-build",
+            "uid": "0fa94f96-e0e2-470e-a0ab-47fe774e4e92"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-1-global-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-1-build",
+            "uid": "0fa94f96-e0e2-470e-a0ab-47fe774e4e92"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-1-sys-config",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-1-build",
+            "uid": "0fa94f96-e0e2-470e-a0ab-47fe774e4e92"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-2-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-2-build",
+            "uid": "c6c5f29c-841b-4f24-9086-db75ca70f184"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-2-global-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-2-build",
+            "uid": "c6c5f29c-841b-4f24-9086-db75ca70f184"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-2-sys-config",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-2-build",
+            "uid": "c6c5f29c-841b-4f24-9086-db75ca70f184"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-3-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-3-build",
+            "uid": "2a3310ea-15b7-4714-acdc-a44a3c970ebf"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-3-global-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-3-build",
+            "uid": "2a3310ea-15b7-4714-acdc-a44a3c970ebf"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-3-sys-config",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-3-build",
+            "uid": "2a3310ea-15b7-4714-acdc-a44a3c970ebf"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "backup.sh": "#!/usr/bin/env bash\nset -euo pipefail\numask 077\ncp /backup-secret/pgpass /tmp/pgpass\nchmod 600 /tmp/pgpass\nexport PGPASSFILE=/tmp/pgpass\nexport PGSSLMODE=verify-full PGSSLROOTCERT=/trust/service-ca.crt\ntarget=\"/backups/metadata-$(date -u +%Y%m%dT%H%M%SZ).dump\"\ntrap 'rm -f /tmp/pgpass \"${target}.partial\"' EXIT\nif ! pg_dump --host=\"${DATABASE_HOST:?}\" --username=delivery_backup --dbname=delivery --format=custom --file=\"${target}.partial\" 2>/dev/null; then echo 'Metadata backup failed.' >&2; exit 1; fi\npg_restore --list \"${target}.partial\" >/dev/null\nmv \"${target}.partial\" \"$target\"\nfind /backups -type f -name 'metadata-*.dump' -mtime +29 -delete\necho 'Metadata backup completed and archive listing verified.'\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-backup-script",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "certificate-reload.mjs": "// Namespace-scoped renewal bridge. Reads public Certificate status, never TLS Secrets.\nimport { readFileSync } from \"node:fs\";\nimport { request } from \"node:https\";\nconst directory = \"/var/run/secrets/kubernetes.io/serviceaccount/\";\nconst namespace = readFileSync(directory + \"namespace\", \"utf8\").trim();\nconst targets = JSON.parse(readFileSync(\"/scripts/targets.json\", \"utf8\"));\nconst annotation = \"delivery.example/certificate-revision\";\nconst pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\nfunction api(path, method = \"GET\", body) {\n  return new Promise((resolve, reject) => {\n    const req = request(\n      {\n        hostname: \"kubernetes.default.svc\",\n        port: 443,\n        path,\n        method,\n        ca: readFileSync(directory + \"ca.crt\"),\n        rejectUnauthorized: true,\n        headers: {\n          Authorization:\n            \"Bearer \" + readFileSync(directory + \"token\", \"utf8\").trim(),\n          ...(body ? { \"Content-Type\": \"application/merge-patch+json\" } : {}),\n        },\n      },\n      (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n          if (data.length > 4 * 1024 * 1024)\n            req.destroy(new Error(\"API response too large\"));\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode < 200 || res.statusCode >= 300)\n            return reject(new Error(\"Kubernetes API status \" + res.statusCode));\n          try {\n            resolve(JSON.parse(data));\n          } catch {\n            reject(new Error(\"Invalid Kubernetes API response\"));\n          }\n        });\n      },\n    );\n    req.setTimeout(20000, () =>\n      req.destroy(new Error(\"Kubernetes API timeout\")),\n    );\n    req.on(\"error\", () => reject(new Error(\"Kubernetes API request failed\")));\n    req.end(body ? JSON.stringify(body) : undefined);\n  });\n}\nfunction healthy(d) {\n  const desired = d.spec.replicas ?? 1,\n    s = d.status ?? {};\n  return (\n    s.observedGeneration >= d.metadata.generation &&\n    (s.readyReplicas ?? 0) === desired &&\n    (s.updatedReplicas ?? 0) === desired &&\n    (d.kind === \"StatefulSet\"\n      ? s.currentRevision === s.updateRevision\n      : (s.replicas ?? 0) === desired)\n  );\n}\ntry {\n  for (const t of targets) {\n    const certificate = await api(\n      `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${t.certificate}`,\n    );\n    if (\n      !certificate.status?.conditions?.some(\n        (c) =>\n          c.type === \"Ready\" &&\n          c.status === \"True\" &&\n          c.observedGeneration === certificate.metadata.generation,\n      ) ||\n      !certificate.status.revision\n    )\n      throw Error(\"Certificate is not ready: \" + t.certificate);\n    const revision =\n      certificate.metadata.uid + \"/\" + certificate.status.revision;\n    const path = `/apis/apps/v1/namespaces/${namespace}/${t.kind}/${t.name}`;\n    let workload = await api(path);\n    // An intentionally stopped workload must remain stopped.\n    if (workload.spec.replicas === 0) {\n      console.log(t.name + \": suspended\");\n      continue;\n    }\n    const changed =\n      workload.spec.template.metadata.annotations?.[annotation] !== revision;\n    if (changed) {\n      await api(path, \"PATCH\", {\n        spec: {\n          template: { metadata: { annotations: { [annotation]: revision } } },\n        },\n      });\n      console.log(\n        t.name +\n          \": certificate revision \" +\n          certificate.status.revision +\n          \" rollout requested\",\n      );\n    }\n    const deadline = Date.now() + 300000;\n    do {\n      workload = await api(path);\n      if (healthy(workload)) break;\n      if (Date.now() > deadline) throw Error(\"Rollout timeout: \" + t.name);\n      await pause(5000);\n    } while (true);\n    console.log(t.name + \": ready\");\n  }\n} catch (error) {\n  // Messages above contain only operation names and status codes, never API response bodies.\n  console.error(\n    error instanceof Error ? error.message : \"Certificate reload failed\",\n  );\n  process.exitCode = 1;\n}\n",
+        "targets.json": "[{\"name\":\"test-registry\",\"kind\":\"deployments\",\"certificate\":\"test-registry-cert-manager\"},{\"name\":\"delivery-postgres\",\"kind\":\"statefulsets\",\"certificate\":\"delivery-postgres-cert-manager\"},{\"name\":\"test-identity\",\"kind\":\"deployments\",\"certificate\":\"test-identity-cert-manager\"},{\"name\":\"delivery\",\"kind\":\"deployments\",\"certificate\":\"delivery-app-cert-manager\"}]"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "APP_INTERNAL_HOST": "delivery.secure-delivery-test.svc",
+        "APP_ORIGIN": "https://delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+        "AUDIT_RETENTION_DAYS": "90",
+        "BRAND_NAME": "Secure Delivery · deployment test",
+        "DATABASE_CA_FILE": "/trust/service/service-ca.crt",
+        "DATABASE_HOST": "delivery-postgres.secure-delivery-test.svc",
+        "DATABASE_NAME": "delivery",
+        "DATABASE_PASSWORD_FILE": "/secrets/database/password",
+        "DATABASE_USER": "delivery",
+        "GRAPH_CLIENT_ID": "",
+        "GRAPH_CLIENT_SECRET_FILE": "/secrets/graph/client-secret",
+        "GRAPH_MAILBOX": "",
+        "GRAPH_TENANT_ID": "",
+        "LINK_EMAIL_ENABLED": "false",
+        "NODE_EXTRA_CA_CERTS": "/trust/external/ca-bundle.pem",
+        "OIDC_CLIENT_ID": "secure-delivery",
+        "OIDC_CLIENT_SECRET_FILE": "/secrets/oidc/client-secret",
+        "OIDC_ISSUER": "https://identity-secure-delivery-test.apps.acm.sharkbait.tech/realms/delivery-test",
+        "OIDC_REQUIRED_ROLE": "repository-sender",
+        "OIDC_ROLE_CLIENT": "secure-delivery",
+        "RETRIEVAL_ENABLED": "true",
+        "S3_ACCESS_KEY_FILE": "/secrets/s3/access-key",
+        "S3_BUCKET": "secure-delivery-test-6758a344-3b14-4079-b38f-8b780b49037f",
+        "S3_ENDPOINT": "https://rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc",
+        "S3_REGION": "us-east-1",
+        "S3_SECRET_KEY_FILE": "/secrets/s3/secret-key",
+        "S3_STORAGE_CLASS": "ocs-storagecluster-ceph-rgw",
+        "SUPPORT_TEXT": "Synthetic test deployment. Contact the test operator for access.",
+        "TLS_CERT_FILE": "/tls/tls.crt",
+        "TLS_KEY_FILE": "/tls/tls.key"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-config",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "BUCKET_HOST": "rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc",
+        "BUCKET_NAME": "secure-delivery-test-6758a344-3b14-4079-b38f-8b780b49037f",
+        "BUCKET_PORT": "443",
+        "BUCKET_REGION": "",
+        "BUCKET_SUBREGION": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "finalizers": [
+          "objectbucket.io/finalizer"
+        ],
+        "labels": {
+          "bucket-provisioner": "openshift-storage.ceph.rook.io-bucket"
+        },
+        "name": "delivery-documents",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "objectbucket.io/v1alpha1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ObjectBucketClaim",
+            "name": "delivery-documents",
+            "uid": "14b44462-b750-4cd1-be42-4854d82da160"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.pem": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-external-ca",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIB4TCCAYagAwIBAgIUY8KtcSPX6b2wmYMvvoy+98JxRekwCgYIKoZIzj0EAwIw\nTjEdMBsGA1UEChMUU2VjdXJlIERlbGl2ZXJ5IFRlc3QxLTArBgNVBAMTJFNlY3Vy\nZSBEZWxpdmVyeSBBQ00gVGVzdCBJbnRlcm5hbCBDQTAeFw0yNjA5MTMwMTE4MzJa\nFw0zNjA5MTAwMTE4MzJaME4xHTAbBgNVBAoTFFNlY3VyZSBEZWxpdmVyeSBUZXN0\nMS0wKwYDVQQDEyRTZWN1cmUgRGVsaXZlcnkgQUNNIFRlc3QgSW50ZXJuYWwgQ0Ew\nWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS4fAjtxHs5HWmH0h+0v9VCXc3SZPBC\nJX/pu4mkM98Hj5lgxey5sYdQgTf8xg/vCQEbb8fAznSTYcUaFxUHdSdso0IwQDAO\nBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUjoZQhtZL\nxvTytA4Ai4Lrq+qWv2AwCgYIKoZIzj0EAwIDSQAwRgIhALTTEbgVnTu2XoO/i1N0\n81W48pIuURjd8gQCnAOwAbmFAiEAy0RJc/Z8H5eEmIWDCRRmOQYDICW79FP/F/eC\nhcFjsP8=\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-internal-trust",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-postgres-1-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-postgres-1-build",
+            "uid": "b33fdd63-ded4-441e-aa53-bb8095158bba"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-postgres-1-global-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-postgres-1-build",
+            "uid": "b33fdd63-ded4-441e-aa53-bb8095158bba"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-postgres-1-sys-config",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-postgres-1-build",
+            "uid": "b33fdd63-ded4-441e-aa53-bb8095158bba"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-postgres-2-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-postgres-2-build",
+            "uid": "58bfb34d-f55d-4ed5-a2e6-cc9a37c0e7b7"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-postgres-2-global-ca",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-postgres-2-build",
+            "uid": "58bfb34d-f55d-4ed5-a2e6-cc9a37c0e7b7"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-postgres-2-sys-config",
+        "namespace": "secure-delivery-test",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "delivery-postgres-2-build",
+            "uid": "58bfb34d-f55d-4ed5-a2e6-cc9a37c0e7b7"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "pg_hba.conf": "local all all reject\nhostnossl all all 0.0.0.0/0 reject\nhostnossl all all ::/0 reject\nhostssl delivery delivery 0.0.0.0/0 scram-sha-256\nhostssl delivery delivery ::/0 scram-sha-256\nhostssl delivery delivery_backup 0.0.0.0/0 scram-sha-256\nhostssl delivery delivery_backup ::/0 scram-sha-256\nhostssl all postgres 0.0.0.0/0 scram-sha-256\nhostssl all postgres ::/0 scram-sha-256\nhostssl keycloak keycloak 0.0.0.0/0 scram-sha-256\nhostssl keycloak keycloak ::/0 scram-sha-256\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-postgres-config",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n\n-----BEGIN CERTIFICATE-----\nMIIB4TCCAYagAwIBAgIUY8KtcSPX6b2wmYMvvoy+98JxRekwCgYIKoZIzj0EAwIw\nTjEdMBsGA1UEChMUU2VjdXJlIERlbGl2ZXJ5IFRlc3QxLTArBgNVBAMTJFNlY3Vy\nZSBEZWxpdmVyeSBBQ00gVGVzdCBJbnRlcm5hbCBDQTAeFw0yNjA5MTMwMTE4MzJa\nFw0zNjA5MTAwMTE4MzJaME4xHTAbBgNVBAoTFFNlY3VyZSBEZWxpdmVyeSBUZXN0\nMS0wKwYDVQQDEyRTZWN1cmUgRGVsaXZlcnkgQUNNIFRlc3QgSW50ZXJuYWwgQ0Ew\nWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS4fAjtxHs5HWmH0h+0v9VCXc3SZPBC\nJX/pu4mkM98Hj5lgxey5sYdQgTf8xg/vCQEbb8fAznSTYcUaFxUHdSdso0IwQDAO\nBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUjoZQhtZL\nxvTytA4Ai4Lrq+qWv2AwCgYIKoZIzj0EAwIDSQAwRgIhALTTEbgVnTu2XoO/i1N0\n81W48pIuURjd8gQCnAOwAbmFAiEAy0RJc/Z8H5eEmIWDCRRmOQYDICW79FP/F/eC\nhcFjsP8=\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "openshift.io/description": "Configmap is added/updated with a data item containing the CA signing bundle that can be used to verify service-serving certificates",
+          "openshift.io/owning-component": "service-ca"
+        },
+        "name": "delivery-service-ca",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDMjCCAhqgAwIBAgIIMcS4QleFa6wwDQYJKoZIhvcNAQELBQAwNzESMBAGA1UE\nCxMJb3BlbnNoaWZ0MSEwHwYDVQQDExhrdWJlLWFwaXNlcnZlci1sYi1zaWduZXIw\nHhcNMjYwODIyMTcyODQyWhcNMzYwODE5MTcyODQyWjA3MRIwEAYDVQQLEwlvcGVu\nc2hpZnQxITAfBgNVBAMTGGt1YmUtYXBpc2VydmVyLWxiLXNpZ25lcjCCASIwDQYJ\nKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJmSoxB5QUTrEQ2cz43gEbT2Um2wAY2K\n3iDX0/ffQolPWbon2itEHr/+txFpHR/JxsTQd0byC6LsvvUndrdSxYcO5HaNSHUy\n/KHLdM3YVJDabuiblRdbTMiiADT7QVc4Pu+QEwVHMbo+q7shrg9rLvr+TJvtZUZP\ne6x1bvSVMKUFwo/uEy3FZ/8o5f6h1vcsq4Ho+E/oV6UnhU9OkNjQxiamqGxZIluk\ncCTPjea68yGwUreIwZ4T9v0h/XdiEH3qmt6z3U6YAxaAmxI5K2xt6j9STtDZOyfU\n5F/4Sr8EFlUXuJh3GxTtOCoN4yWMGFYnEkft4xld4h8AqimWJ4D0eecCAwEAAaNC\nMEAwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFAw4\nJumzcfEZiIHwXK1n99xtmp62MA0GCSqGSIb3DQEBCwUAA4IBAQAI5/KJfHIlynz9\nli7oDl1CLy5O1A/7RGIWBhzeaeNqE0xWQYVHM96phC0D1fmLVKVNSgj78S36cm+r\nAHgbHQuyVNF1OhnYoGhzG3DdJ4ZgygdywuDyvL/sHkaQvuP21ZV2vBFT5R0mdBM2\nSeToWVvG0ACl8c4fzbXkLXbC0c+OUm0QRsmKwE+zbuN6440sibMIk0hHq1ebv9kp\nP1ThSpLRKc+cAd3jOA7H2z1rRhKZ9SKm/e4pFDqyC2TlgH3MyzrNQjqPaNZFM4I+\nR6La96jQmaLMwvv0zEzUwkxOwzouKM+W5Ts3TlHdDyn/3v913LIzu/n6xW0lv63e\nwMTzK8CM\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIDQDCCAiigAwIBAgIISv1X54Z0Wm8wDQYJKoZIhvcNAQELBQAwPjESMBAGA1UE\nCxMJb3BlbnNoaWZ0MSgwJgYDVQQDEx9rdWJlLWFwaXNlcnZlci1sb2NhbGhvc3Qt\nc2lnbmVyMB4XDTI2MDgyMjE3Mjg0MloXDTM2MDgxOTE3Mjg0MlowPjESMBAGA1UE\nCxMJb3BlbnNoaWZ0MSgwJgYDVQQDEx9rdWJlLWFwaXNlcnZlci1sb2NhbGhvc3Qt\nc2lnbmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv80NyEtNheSR\ngrPlW8pwzDYDZmCrFe65HhKbbIwRDMq2BD2V/tVJWW75+S+UWc6ag8e8zC6PwX+n\n3l6iW8+XbR+3yfBAl67UQ9T6BACTftqrlpfjQSOO97zuXnZmQRyuerb7Gw8zdR60\npJbcRQadfxiRbyJZAmCPmdxGwXgKr4b9zHcLpPTpV+ANh4P3OS8o141QrpEahXvC\nTp9kyCLiRfqIbi7t8IG4DDfxC3pP08ij5oXi563GDztB3e6HjfPRfGKl4FogOuvW\n1Gsva8Cy7sWPwFxWDbEPvvwQjDfV6e7EzRMPGocsxc747hR7JUdIfsNKTGil8uCy\n0Vw13NzyywIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB\n/zAdBgNVHQ4EFgQUsOsPCrRRqfv5fsJTgfETBXw4QvswDQYJKoZIhvcNAQELBQAD\nggEBAFa7Cdsq6es+QhSnnyIkINRmf5pBPiMgGchsVuNRJsgQxre6BSxkI0Szif2h\nJ5OLoioeSi5KPUtq+P/XxxFb9pCgWeEhs7uxqWcuBazzB9JOn33djvkRcfPi0X0e\nCqJtlHAVbIBJrKmw/MoKmfwXrHVjhCa/qu0FhskLbEjW5eRKtsOTgXt6WB2BJcS0\nXgKotc2hYVqG2n+CqSZgy2nk8c0jL1rVrhMX2Qmqf1yCEXAvKWE45I5G2xeHGgTj\njx5YO+gHs2RCTqPqjaxgISHdLRwybe+FAX9k2U2EORxVdZENdPjH8DsxRSHcdWQ2\nx4cTm4Glr4An7cRNnh+hi9YjkCY=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIDTDCCAjSgAwIBAgIIB8/8mZdhPDQwDQYJKoZIhvcNAQELBQAwRDESMBAGA1UE\nCxMJb3BlbnNoaWZ0MS4wLAYDVQQDEyVrdWJlLWFwaXNlcnZlci1zZXJ2aWNlLW5l\ndHdvcmstc2lnbmVyMB4XDTI2MDgyMjE3Mjg0MloXDTM2MDgxOTE3Mjg0MlowRDES\nMBAGA1UECxMJb3BlbnNoaWZ0MS4wLAYDVQQDEyVrdWJlLWFwaXNlcnZlci1zZXJ2\naWNlLW5ldHdvcmstc2lnbmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC\nAQEAovY+1DlCuLv9I6i7YbljG47EWcE0D6xm2msyWToZc/ADWFqPKrXy7NXDEV7i\nbdZX70ZnXAWqYor552Mb9i2W/QxsW43z2eCXiBLpeZjl3fB+uGWZqn/MwxVH0EzY\nJtdUI1qrPCka4BS+RdbzPMBNtByJP5v2HkTeJehVT3REPYc8GJn6pHzxTzl0PGBm\nCnu6QTtfFSBgluEz7+rFQTq11KmdW1Io84/ZEyqU8vKPWiHNi7EHiKRO1aGbkzf6\nRimKjpSgAFcqc5YtWBOJCJgMa4gQPPK58L/T2WILYJS3a9DMQYGwPiMukHXiKjoM\nlUVUV0lKV+n9BzgBh2J0UzUdUQIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAqQwDwYD\nVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUs4YzUknUbKLNqhWgiw/SQIjUv3owDQYJ\nKoZIhvcNAQELBQADggEBAKA2tx3tRSG1uepMtaDFHp7sUjKGEzBDgEtOv+S1qJmE\nb7OtNMDw++Oj/sJIb+xtpd20nsd/NXjFTV4fuW3se5qSQ6U650W0h+/xafrP3alP\nJD47/kNt2VRjWR8vpkFrSiXWr37T4XSmrupvTbzmh5/aILMC9emBnxGsTyEH6eT7\nh58ue61VxSkdth/N7b+CMU90lJ3lF4z7XmYmehexgeIylGzuJ56nm40f4Wk7nh/o\nbd10HcEVNVNMAjgnRMZ4Oz0mt5lHEWTycjtAipGfarkzNnVJA7VUJ22OFz+xrAyn\nU/Fr8GgYT3UuDmSW3GV2xTpm0QLDbmewsh5tJJZHH6w=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIDlzCCAn+gAwIBAgIIGW4jO1lDmC4wDQYJKoZIhvcNAQELBQAwWTFXMFUGA1UE\nAwxOb3BlbnNoaWZ0LWt1YmUtYXBpc2VydmVyLW9wZXJhdG9yX2xvY2FsaG9zdC1y\nZWNvdmVyeS1zZXJ2aW5nLXNpZ25lckAxNzg3NDIwMzA0MB4XDTI2MDgyMjE3Mzgy\nM1oXDTM2MDgxOTE3MzgyNFowWTFXMFUGA1UEAwxOb3BlbnNoaWZ0LWt1YmUtYXBp\nc2VydmVyLW9wZXJhdG9yX2xvY2FsaG9zdC1yZWNvdmVyeS1zZXJ2aW5nLXNpZ25l\nckAxNzg3NDIwMzA0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2Iaj\nTStwDDD6cJeMKxJUBr58xQg6XX85M2Mt8gA7KdVpbaw0ArIRkb5NnON7mvHiKAzy\nht7v0KseTeaQ3rvc6BoUEb+zgIlaN+/Yz12jQ0ZAK19G9zBF8vo9QPRH4SxC8sLG\nYQ39lqLr0baFrLsVL6fVVfCoNwXD25NFNcZrYJ33oouuqvD3U+4iM5MTvqeHzprH\nFK4DiVM+5y4hR4X2CRwqGu2Kau06hINOLBnSVnpTmOajIFzTKphiG+XFEWk2Nqa1\nkVe4BCqmRAAan/LmYtGtpTjIGb7ZZANriNKNmZ+2mL1vyuRmMbAbH97pOwo9pobg\nuvIxRLG5yRPw+a9p8wIDAQABo2MwYTAOBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/\nBAUwAwEB/zAdBgNVHQ4EFgQUKwfxl4hHeAofKKPeDzPO3WXkKtkwHwYDVR0jBBgw\nFoAUKwfxl4hHeAofKKPeDzPO3WXkKtkwDQYJKoZIhvcNAQELBQADggEBAFQvX9Nq\nQpYvbKZA9MP76u1ZAazbeahmhHCdQSxTIiIrSrNooqy2iuEsHwu8ifNMFN8ACYFO\nGRHzEw2gANt+rf61KHFT9tBEpfu9lEcB7Hc3x/YAoziXB+kmC68VpsVpE4xkBxY9\nYajNxcy/zV9+0wzqnYf4q+vx30Fum3p0AxPZpoaEbdHztbAaGj1Dd5WVzMga/I8W\naxUTTEz4CPf3XKLJiAPAl/iLYFdA9Wwv1v5RpwaWZfGnnxVeXIDhXnWsS30Da0QT\naFR1jMVbPBXskqUb8+OkjYjo4YNPElHz+zwaRgUFoTUVRetfJxrwUvgLEV+e3oNi\nYitDgAdDcTcgUBU=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIFJjCCBA6gAwIBAgISBqeu4VFRo/I+G/1MQbEGvEHuMA0GCSqGSIb3DQEBCwUA\nMDMxCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQwwCgYDVQQD\nEwNZUjEwHhcNMjYwODIyMTgxMjU2WhcNMjYxMTIwMTgxMjU1WjAkMSIwIAYDVQQD\nDBkqLmFwcHMuYWNtLnNoYXJrYmFpdC50ZWNoMIIBIjANBgkqhkiG9w0BAQEFAAOC\nAQ8AMIIBCgKCAQEAoAg6WfqfZ8S4f0UcNg23VmclDsicnedDOIbmyCUUVrJ9Nnj/\ndYTNeeVtyTeWmXwvkPeR+8Sk8qdlSvcyhOp0UsWiyFpKGqXdazP32hfZcP3x3+HG\nLVZIYFwx5pV3fTfwQK3LM4XyGrWbQiK7WlIr9nj/7wXWV+Y6Bs3yaCoXOXgagO7P\nkessa99rRKJD9qHBP03xXC8nKosHGO+oOfQ1JwlCZ5rgiOAKfwzPRICe0VTwsdBM\nmNgG5Ode53EC8fI+WQlYzdBbGz2U1mttycCU5cesWBQdAdqY48ZBC9KAWPYmnBO3\n0Tex0n9w393VcbdifLLY+EH1wHtniyE2ZN+AzwIDAQABo4ICQTCCAj0wDgYDVR0P\nAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwHQYD\nVR0OBBYEFJ4dBOfpjXpxnFc94l8LMuEcAoQkMB8GA1UdIwQYMBaAFB8vNb5GFILN\nQLGueSxVePr31Gj7MDMGCCsGAQUFBwEBBCcwJTAjBggrBgEFBQcwAoYXaHR0cDov\nL3lyMS5pLmxlbmNyLm9yZy8wPQYDVR0RBDYwNIIZKi5hcHBzLmFjbS5zaGFya2Jh\naXQudGVjaIIXYXBwcy5hY20uc2hhcmtiYWl0LnRlY2gwEwYDVR0gBAwwCjAIBgZn\ngQwBAgEwLwYDVR0fBCgwJjAkoCKgIIYeaHR0cDovL3lyMS5jLmxlbmNyLm9yZy8x\nMTEuY3JsMIIBDAYKKwYBBAHWeQIEAgSB/QSB+gD4AHcA1219ENGn9XfCx+lf1wC/\n+YLJM1pl4dCzAXMXwMjFaXcAAAGgKuKSoAAABAMASDBGAiEAneYRJS8bXhqFcngQ\nBG74K3W108yelhqTBIV+7dK0m0ICIQDlh/O4e/Cs3zHGvFSAX12nG6lfQj27MMmL\noToeSgldAwB9ABqLnWsP/r+BtHk5xtIxCobW0QLU8EbiGCyd419eJiXvAAABoCri\nlIcACAAABQA3dqvpBAMARjBEAiAxa193KffvDFZQ9yUUN+diqiHFaQO3coEhFeDh\nEg/MYwIgSCCKuFujtsNKF7oaoUXcN2VF0SzN/rJOGINUhAo704cwDQYJKoZIhvcN\nAQELBQADggEBAJ8WNgNejr51vhW141HLx/e0z6unDwrQ/oFADRu6Ls3rs/Alquru\nq4TR7iLtxvhh+6dTQl3DdwVqaUQI1IHiBg45q5MH0b7Zvp5R4bQ8mZyAi1D47eQ+\niA2rdmK73k0WCVGgziQlmJOms8uilBC0g7gQ1K0z/VeHKbIrSTV+CHOc536V+Naj\no1Noj/qf+GHS32eiXbB5YAb7QqIw6hPl99NpKyqjyDxq09Fj0xirPkQ+F5y5nys+\nXI4TuuHRVQrLk11brKHVt4cqts4mc9A0Gt2ilEDMdNbmpnYu4stXdUNPetNIkJTz\n7xXuxRPtkmZc9/YR9INdpye7P8WwvdAsvSk=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIE2zCCAsOgAwIBAgIRAKICU/FfJpHAXcHOE7m8yk4wDQYJKoZIhvcNAQELBQAw\nLjELMAkGA1UEBhMCVVMxDTALBgNVBAoTBElTUkcxEDAOBgNVBAMTB1Jvb3QgWVIw\nHhcNMjUwOTAzMDAwMDAwWhcNMjgwOTAyMjM1OTU5WjAzMQswCQYDVQQGEwJVUzEW\nMBQGA1UEChMNTGV0J3MgRW5jcnlwdDEMMAoGA1UEAxMDWVIxMIIBIjANBgkqhkiG\n9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoVi8X2xCYgMXvJxNPKp/oF13UMgmPABB07VC\nLNDtoXmt9luEZNJSBV10VyT1Pz6LD8Zq1d2gc43WNl1AdRrj4sEnazbOiz0nPpmG\nBp2hui49oZtDIY6wdKeZAi5BbNU20CH6RSBBMLSQ9cXrH8dxdv4PAJ45ssGML68U\nSE3BsjC2a6cAN9L5CgXVIQi5tfNiTPoFZZ3S0OlXqLmmtdV95udWAb5b6e/F49Di\nCsH0Y00Ag72BVIb1hzynmKe+X0mERBTtsb3BwmpV9ipeBjMLoR/D9cHxHQCWoi5l\nTmXwY015J5rGelz1nZjJuxc2kioaX29XJBnhMkP531rSdG5uMwIDAQABo4HuMIHr\nMA4GA1UdDwEB/wQEAwIBhjATBgNVHSUEDDAKBggrBgEFBQcDATASBgNVHRMBAf8E\nCDAGAQH/AgEAMB0GA1UdDgQWBBQfLzW+RhSCzUCxrnksVXj699Ro+zAfBgNVHSME\nGDAWgBTe51tg0CJtQCh9Pw0B/qS1UrRRlDAyBggrBgEFBQcBAQQmMCQwIgYIKwYB\nBQUHMAKGFmh0dHA6Ly95ci5pLmxlbmNyLm9yZy8wEwYDVR0gBAwwCjAIBgZngQwB\nAgEwJwYDVR0fBCAwHjAcoBqgGIYWaHR0cDovL3lyLmMubGVuY3Iub3JnLzANBgkq\nhkiG9w0BAQsFAAOCAgEA0+zvMq3kHig1ddTmmm+RibTr9/RpX7k4buanMMRqbV/y\nIvP82zAHN3mvaw+cASuVsdpd0ikjhr4hnhJQLQOzOp2ccKrsdGOAgo0vddeISFAq\nEWEV4lmUM3vFF796up+bSgmJ1u6RupDCMxDgF8M3eLvGuj6L0lu3zkQ0KuQLnKxL\ntB0oQqn1Idg5CuuGpMvQzk29Pa3D/qHurc0EIM9SxukQuJqq63lxsYyRQFU8yMBO\nhq1w5LbfaWNRrz1uklOfI/pYkAb2E2MTZrAMQkBIE2S8Jt1F8gRc96o/xOsrgvSk\na84AisX6xq1lz1Z7jGvrnXc4TMcjxZTjiTaihcYI1JIXZiLtEMSCa5l3cu8YWd6z\ndLRQlqRdclVjuQfNHawRJ6GWlkK0QJosivTKwdBw3KxEtzGo8yMHERbsy57gP1UX\nHOMcmZYQC0gtyR3SxfenIM/MxC3Ia2Ypab/kQ/CTnlIn2KQ5JUC6NYrGCbhFN9bp\n5lKJStEwCUnLpntcrXk5XVDCNv/5RyWpRThkGOV7GetKkQ0qAY8hCzWK6oqnAhDZ\ncjlYVdWfqOw3DIOX6EDNBgAqHarRVxyF9QZdOaXSyPJ0ueD2BYJEBgaCGQ8rAaU/\nQc123V5LTXDZW4CcsPBDyhy4v+c8hClAyw/IkJlfBqxB9D+/wvIMHgECZ4ptP6o=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIF9DCCA9ygAwIBAgIRAPJLbRf52a18scn+p4eCaZ8wDQYJKoZIhvcNAQELBQAw\nTzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh\ncmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMjYwNTEzMDAwMDAw\nWhcNMzIwOTAyMjM1OTU5WjAuMQswCQYDVQQGEwJVUzENMAsGA1UEChMESVNSRzEQ\nMA4GA1UEAxMHUm9vdCBZUjCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIB\nANvGJnN78CTJdWL3+eGfsLN5TrNBJs+VH9hRXqRbwxu9sGNiB0BD1fcOxbSUQCJI\nM1xE13Db+5Cw1w0s0EBYsvuIP/6joF0w8cuImbgR1OGgYbSQ4OpzI+DG8SGuTlcE\n873OCS+kh3srlo6vl43M5OJg4Aeo1sfHp6kTJDoIiFBNJAY+OKfX/FUvYKuhjT+n\no49lmqmupSBI5PkBQiqrEGtWU5uxU/cQWHGu8jSjFBznZqvbNPLMXMLFxCb3WTfr\nJBXXjqvWG+v4bjzxjjeAtOlU7qarRDvNOyAuQYLln904M+faKx8hnLCpJ15ZqaEg\ncNlY+9MMWcC5yvL2A2j3l9+2buggZX+dOE91zYmIdawTvSZuVvlbRrAlLxIB6pwM\nBjneXCjYQ8+3BCCjssbSNpZU3hTcBDdhfAlEDlYr6pEatnMdmDT5BqnKC92bd0Eh\nM1fbLHioLccLCuievT8ZkPhZrq7Mii7gNXAcUEAR8+lzYal+9zTg7C5DALyVOeG/\nCqfRAMn1KSHCR0NSA6P8tn/mGRlnCct5rtVCLnVySVpU6H1qGg3DgTOuskf8eahT\nMiYbI5ezPJmO5ertalskQ1utp74+eDy92PI4ftHKTbq9IWhH4YZKh3WnJEIt+oQv\nlYZbY8tpEroKrFB6PFGzrJIDRyts4HqvuH52RFj2zv/BAgMBAAGjgeswgegwDgYD\nVR0PAQH/BAQDAgEGMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1UdEwEB/wQFMAMB\nAf8wHQYDVR0OBBYEFN7nW2DQIm1AKH0/DQH+pLVStFGUMB8GA1UdIwQYMBaAFHm0\nWeZ7tuXkAXOACIjIGlj26ZtuMDIGCCsGAQUFBwEBBCYwJDAiBggrBgEFBQcwAoYW\naHR0cDovL3gxLmkubGVuY3Iub3JnLzATBgNVHSAEDDAKMAgGBmeBDAECATAnBgNV\nHR8EIDAeMBygGqAYhhZodHRwOi8veDEuYy5sZW5jci5vcmcvMA0GCSqGSIb3DQEB\nCwUAA4ICAQA8spSI95KKfn2W6GMmDpHBJSPaLbsS3W93cijJCRCYAc1fsJgL1FIL\n7C0C9ecPOdcwB2fi0Dk2p94j9iTJCxmt5CFSKLRWwnXT2MMSXexVxqoVB79BdWPx\nVXETkVme/qYSAuKVHh5Ps+5BixgmwS1JkjSAc+MfrUbNssVEEnH0aEiAh+rotXAV\nJSP/Ye7LJPEwD9DWG72vVWbhAcuOf5OLjz57Ctk7MgQHynZ7+PlHJtajroCaIbtC\nr6tcZZaAwUQm+jQyeWdV+2hv9deOYFmKeQyjjcSrN5Nadrw+L9DZJLbA1HqeNvLh\nBgqpP0fvJq2N6EtD574N6eMI7uMsJTnji2UDz9el5XLSv9fqJMuDQtYVb2oTNoKp\noUqhxPVC0aq4eG5MESaIdn8b5ZGSSeAJLMHXljEdlNza+ncfkviXk1POLnnFdvx8\n/gk6M374WbLWFXw8N141B/Rl/tINGfl1TxOIiqtiMYkL02RSGb1kq34BL9NPP27z\nRGMuHGnzS3hFIrRTfKxrzUZ9RzQWzEG3K6fJ3r2nqSltkeytis9DIBoFY9VmVyjL\nM71DMi+y1+TRSJVClEMwvA4yL++7q9XZx5r5wBRWB4kQTKH5qyoZnDw7iiuh1lID\nyDFx8r7i9vIJU5HS3moZLkYWAOilMaV9N56A9Bgb6dNcHkvg3NoaYA==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "kubernetes.io/description": "Contains a CA bundle that can be used to verify the kube-apiserver when using internal endpoints such as the internal service IP or kubernetes.default.svc. No other usage is guaranteed across distributions of Kubernetes clusters."
+        },
+        "name": "kube-root-ca.crt",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "service.beta.openshift.io/inject-cabundle": "true"
+        },
+        "name": "openshift-service-ca.crt",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "20-test-identity.sh": "#!/usr/bin/env bash\nset -euo pipefail\nexport TEST_IDENTITY_PASSWORD\nTEST_IDENTITY_PASSWORD=$(cat /test-identity-secret/password)\nif ! psql -v ON_ERROR_STOP=1 --username \"$POSTGRES_USER\" --dbname \"$POSTGRES_DB\" >/dev/null 2>&1 <<'SQL'\n\\getenv identity_password TEST_IDENTITY_PASSWORD\nSELECT format('CREATE ROLE keycloak LOGIN PASSWORD %L', :'identity_password') \\gexec\nCREATE DATABASE keycloak OWNER keycloak;\nSQL\nthen echo 'Isolated identity database initialization failed.' >&2; exit 1; fi\nunset TEST_IDENTITY_PASSWORD\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-identity-db-init",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "cluster-test-probe.ts": "// Mounted only into the isolated cluster test Job. Never prints provider objects or credentials.\nimport { lookup } from \"node:dns/promises\";\nimport { readConfig } from \"../src/server/config\";\nimport { productionDb } from \"../src/server/db\";\nimport { S3Storage } from \"../src/server/storage\";\nimport * as s3 from \"@aws-sdk/client-s3\";\nimport { randomBytes, createHash } from \"node:crypto\";\nconst out = (v: object) => console.log(JSON.stringify(v));\nconst safe = (v: unknown) =>\n  typeof v === \"string\" && /^[A-Za-z0-9_]{1,64}$/.test(v) ? v : undefined;\nconst err = (e: any) => ({\n  name: safe(e?.name),\n  code: safe(e?.code ?? e?.cause?.code),\n  http: e?.$metadata?.httpStatusCode,\n});\nconst c = readConfig(),\n  db = productionDb(c),\n  storage = new S3Storage(c),\n  Bucket = c.s3Bucket;\ntry {\n  if (process.env.TEST_RESTORE_CHECK_ID) {\n    const id = process.env.TEST_RESTORE_CHECK_ID;\n    if (!/^[a-f0-9]{32}$/.test(id)) throw new Error(\"Invalid test ID\");\n    const state = (\n      await db.query(\n        \"SELECT (SELECT value FROM settings WHERE key='retrieval_enabled') AS retrieval, (SELECT count(*) FROM sessions) AS sessions, (SELECT count(*) FROM oidc_transactions) AS transactions, (SELECT count(*) FROM repositories WHERE status<>'revoked') AS not_revoked, (SELECT count(*) FROM repositories WHERE deleted_at IS NULL) AS not_deleted, (SELECT status FROM repositories WHERE id=$1) AS candidate_status\",\n        [id],\n      )\n    ).rows[0];\n    const good =\n      state.retrieval === false &&\n      Number(state.sessions) === 0 &&\n      Number(state.transactions) === 0 &&\n      Number(state.not_revoked) === 0 &&\n      Number(state.not_deleted) === 0 &&\n      state.candidate_status === \"revoked\";\n    let objects = 0,\n      multipart = 0;\n    for await (const _ of storage.objects()) objects++;\n    for await (const _ of storage.multiparts()) multipart++;\n    const tables = (\n      await db.query(\n        \"SELECT (SELECT COALESCE(string_agg(row_to_json(r)::text,''),'') FROM repositories r) || (SELECT COALESCE(string_agg(row_to_json(a)::text,''),'') FROM audit a) AS data\",\n      )\n    ).rows[0].data;\n    const canariesAbsent =\n      !/CLUSTER-SYNTHETIC-PLAINTEXT|CLUSTER-FILENAME-CANARY/.test(tables);\n    out({\n      check: \"restore_invalidation\",\n      passed: good && objects === 0 && multipart === 0 && canariesAbsent,\n      retrievalDisabled: !state.retrieval,\n      sessions: Number(state.sessions),\n      pendingTransactions: Number(state.transactions),\n      notRevoked: Number(state.not_revoked),\n      notDeleted: Number(state.not_deleted),\n      candidateRevoked: state.candidate_status === \"revoked\",\n      objectCount: objects,\n      multipartCount: multipart,\n      databaseCanariesAbsent: canariesAbsent,\n    });\n    if (!good || objects || multipart || !canariesAbsent) process.exitCode = 1;\n  }\n  out({\n    check: \"identity_dns\",\n    addresses: await lookup(new URL(c.issuer).hostname, { all: true }),\n  });\n  try {\n    const r = await db.query(\n      \"SELECT ssl,version FROM pg_stat_ssl WHERE pid=pg_backend_pid()\",\n    );\n    out({ check: \"database_tls\", result: r.rows });\n  } catch (e) {\n    out({ check: \"database_tls\", error: err(e) });\n  }\n  try {\n    const r = await fetch(c.issuer + \"/.well-known/openid-configuration\", {\n      signal: AbortSignal.timeout(15000),\n      redirect: \"error\",\n    });\n    const body = await r.json();\n    out({\n      check: \"identity_discovery\",\n      http: r.status,\n      issuerMatches: body.issuer === c.issuer,\n    });\n  } catch (e) {\n    out({ check: \"identity_discovery\", error: err(e) });\n  }\n  for (const name of [\n    \"GetBucketVersioningCommand\",\n    \"GetObjectLockConfigurationCommand\",\n    \"GetBucketReplicationCommand\",\n    \"GetBucketLifecycleConfigurationCommand\",\n    \"ListObjectVersionsCommand\",\n    \"GetBucketAclCommand\",\n    \"GetBucketPolicyStatusCommand\",\n    \"ListMultipartUploadsCommand\",\n  ] as const) {\n    try {\n      const r: any = await storage.client.send(\n        new (s3[name] as any)({ Bucket }),\n        { abortSignal: AbortSignal.timeout(15000) },\n      );\n      out({\n        check: name,\n        http: r.$metadata.httpStatusCode,\n        fields: Object.keys(r).filter((k) => k !== \"$metadata\"),\n        replicationFields: r.ReplicationConfiguration\n          ? Object.keys(r.ReplicationConfiguration)\n          : undefined,\n        replicationRules: r.ReplicationConfiguration?.Rules?.length,\n        replicationRoleSet: !!r.ReplicationConfiguration?.Role,\n        versionStatus: r.Status,\n        versions: r.Versions?.length,\n        deleteMarkers: r.DeleteMarkers?.length,\n        isPublic: r.PolicyStatus?.IsPublic,\n        publicAcl: r.Grants?.some((g: any) => g.Grantee?.URI),\n        multipart: r.Uploads?.length,\n      });\n    } catch (e) {\n      out({ check: name, error: err(e) });\n    }\n  }\n  const key = randomBytes(16).toString(\"hex\"),\n    bytes = randomBytes(256),\n    controller = new AbortController();\n  try {\n    await storage.upload(\n      key,\n      (async function* () {\n        yield bytes;\n      })(),\n      bytes.length,\n      createHash(\"sha256\").update(bytes).digest(\"hex\"),\n      controller.signal,\n      async () => {},\n      async () => {},\n    );\n    const parts: Buffer[] = [];\n    for await (const part of await storage.get(key, controller.signal))\n      parts.push(part);\n    out({\n      check: \"synthetic_s3_roundtrip\",\n      matches: Buffer.concat(parts).equals(bytes),\n    });\n    const r = await fetch(c.s3Endpoint + \"/\" + Bucket + \"/\" + key, {\n      signal: AbortSignal.timeout(15000),\n      redirect: \"error\",\n    });\n    await r.body?.cancel();\n    out({\n      check: \"anonymous_object_access\",\n      http: r.status,\n      denied: [403, 404].includes(r.status),\n    });\n  } catch (e) {\n    out({ check: \"synthetic_s3_roundtrip\", error: err(e) });\n  } finally {\n    try {\n      await storage.remove(key);\n      out({\n        check: \"synthetic_s3_delete\",\n        absent: !(await storage.exists(key)),\n      });\n    } catch (e) {\n      out({ check: \"synthetic_s3_delete\", error: err(e) });\n    }\n  }\n} finally {\n  await db.close();\n  storage.client.destroy();\n}\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "test-probe-script",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "restore.sh": "#!/usr/bin/env bash\nset -euo pipefail\numask 077\nexport PGSSLMODE=verify-full PGSSLROOTCERT=/trust/service-ca.crt PGPASSFILE=/tmp/restore-pgpass\ntrap 'rm -f /tmp/restore-pgpass' EXIT\nprintf '%s:5432:delivery:postgres:%s\\n' \"$DATABASE_HOST\" \"$(cat /restore-admin/password)\" > \"$PGPASSFILE\"\nprintf '%s:5432:delivery:delivery:%s\\n' \"$DATABASE_HOST\" \"$(cat /restore-app/password)\" >> \"$PGPASSFILE\"\nchmod 600 \"$PGPASSFILE\"\nshopt -s nullglob\nfiles=(/backups/metadata-*.dump)\ntest \"${#files[@]}\" -gt 0\narchive=\"${files[${#files[@]}-1]}\"\npg_restore --list \"$archive\" >/dev/null\n# Every caller is stopped. This database contains synthetic delivery test data only.\npsql -h \"$DATABASE_HOST\" -U postgres -d delivery -v ON_ERROR_STOP=1 -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public AUTHORIZATION delivery;' >/dev/null 2>&1\npg_restore -h \"$DATABASE_HOST\" -U delivery -d delivery --exit-on-error --no-owner --no-privileges \"$archive\" >/dev/null 2>&1\ntest \"$(psql -h \"$DATABASE_HOST\" -U delivery -d delivery -Atc \"SELECT status FROM repositories WHERE id='bf00a8b294cda706a43f54770aa776a0'\")\" = finalized\necho 'Restored backup contains the formerly finalized synthetic delivery; all application replicas remain stopped.'\nwc -c < \"$archive\"\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "test-restore-script",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {
+          "haproxy.router.openshift.io/rate-limit-connections": "true",
+          "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp": "30",
+          "haproxy.router.openshift.io/timeout": "3600s"
+        },
+        "name": "delivery",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "host": "delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+        "port": {
+          "targetPort": "https"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nMIIB4TCCAYagAwIBAgIUY8KtcSPX6b2wmYMvvoy+98JxRekwCgYIKoZIzj0EAwIw\nTjEdMBsGA1UEChMUU2VjdXJlIERlbGl2ZXJ5IFRlc3QxLTArBgNVBAMTJFNlY3Vy\nZSBEZWxpdmVyeSBBQ00gVGVzdCBJbnRlcm5hbCBDQTAeFw0yNjA5MTMwMTE4MzJa\nFw0zNjA5MTAwMTE4MzJaME4xHTAbBgNVBAoTFFNlY3VyZSBEZWxpdmVyeSBUZXN0\nMS0wKwYDVQQDEyRTZWN1cmUgRGVsaXZlcnkgQUNNIFRlc3QgSW50ZXJuYWwgQ0Ew\nWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS4fAjtxHs5HWmH0h+0v9VCXc3SZPBC\nJX/pu4mkM98Hj5lgxey5sYdQgTf8xg/vCQEbb8fAznSTYcUaFxUHdSdso0IwQDAO\nBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUjoZQhtZL\nxvTytA4Ai4Lrq+qWv2AwCgYIKoZIzj0EAwIDSQAwRgIhALTTEbgVnTu2XoO/i1N0\n81W48pIuURjd8gQCnAOwAbmFAiEAy0RJc/Z8H5eEmIWDCRRmOQYDICW79FP/F/eC\nhcFjsP8=\n-----END CERTIFICATE-----\n",
+          "externalCertificate": {
+            "name": "delivery-public-tls"
+          },
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "delivery",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-identity",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "host": "identity-secure-delivery-test.apps.acm.sharkbait.tech",
+        "port": {
+          "targetPort": "https"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nMIIB4TCCAYagAwIBAgIUY8KtcSPX6b2wmYMvvoy+98JxRekwCgYIKoZIzj0EAwIw\nTjEdMBsGA1UEChMUU2VjdXJlIERlbGl2ZXJ5IFRlc3QxLTArBgNVBAMTJFNlY3Vy\nZSBEZWxpdmVyeSBBQ00gVGVzdCBJbnRlcm5hbCBDQTAeFw0yNjA5MTMwMTE4MzJa\nFw0zNjA5MTAwMTE4MzJaME4xHTAbBgNVBAoTFFNlY3VyZSBEZWxpdmVyeSBUZXN0\nMS0wKwYDVQQDEyRTZWN1cmUgRGVsaXZlcnkgQUNNIFRlc3QgSW50ZXJuYWwgQ0Ew\nWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS4fAjtxHs5HWmH0h+0v9VCXc3SZPBC\nJX/pu4mkM98Hj5lgxey5sYdQgTf8xg/vCQEbb8fAznSTYcUaFxUHdSdso0IwQDAO\nBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUjoZQhtZL\nxvTytA4Ai4Lrq+qWv2AwCgYIKoZIzj0EAwIDSQAwRgIhALTTEbgVnTu2XoO/i1N0\n81W48pIuURjd8gQCnAOwAbmFAiEAy0RJc/Z8H5eEmIWDCRRmOQYDICW79FP/F/eC\nhcFjsP8=\n-----END CERTIFICATE-----\n",
+          "externalCertificate": {
+            "name": "delivery-public-tls"
+          },
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "test-identity",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-registry",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "host": "registry-secure-delivery-test.apps.acm.sharkbait.tech",
+        "port": {
+          "targetPort": "https"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nMIIB4TCCAYagAwIBAgIUY8KtcSPX6b2wmYMvvoy+98JxRekwCgYIKoZIzj0EAwIw\nTjEdMBsGA1UEChMUU2VjdXJlIERlbGl2ZXJ5IFRlc3QxLTArBgNVBAMTJFNlY3Vy\nZSBEZWxpdmVyeSBBQ00gVGVzdCBJbnRlcm5hbCBDQTAeFw0yNjA5MTMwMTE4MzJa\nFw0zNjA5MTAwMTE4MzJaME4xHTAbBgNVBAoTFFNlY3VyZSBEZWxpdmVyeSBUZXN0\nMS0wKwYDVQQDEyRTZWN1cmUgRGVsaXZlcnkgQUNNIFRlc3QgSW50ZXJuYWwgQ0Ew\nWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS4fAjtxHs5HWmH0h+0v9VCXc3SZPBC\nJX/pu4mkM98Hj5lgxey5sYdQgTf8xg/vCQEbb8fAznSTYcUaFxUHdSdso0IwQDAO\nBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUjoZQhtZL\nxvTytA4Ai4Lrq+qWv2AwCgYIKoZIzj0EAwIDSQAwRgIhALTTEbgVnTu2XoO/i1N0\n81W48pIuURjd8gQCnAOwAbmFAiEAy0RJc/Z8H5eEmIWDCRRmOQYDICW79FP/F/eC\nhcFjsP8=\n-----END CERTIFICATE-----\n",
+          "externalCertificate": {
+            "name": "delivery-public-tls"
+          },
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "test-registry",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "concurrencyPolicy": "Forbid",
+        "failedJobsHistoryLimit": 2,
+        "jobTemplate": {
+          "metadata": {},
+          "spec": {
+            "activeDeadlineSeconds": 1500,
+            "backoffLimit": 1,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "delivery-certificate-reload"
+                }
+              },
+              "spec": {
+                "automountServiceAccountToken": true,
+                "containers": [
+                  {
+                    "command": [
+                      "node",
+                      "/scripts/certificate-reload.mjs"
+                    ],
+                    "image": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery@sha256:cbebc4265b947ad246ba70a1d7b8869ea63342a8726d3b3201832e6383043054",
+                    "imagePullPolicy": "IfNotPresent",
+                    "name": "reload",
+                    "resources": {
+                      "limits": {
+                        "cpu": "250m",
+                        "memory": "128Mi"
+                      },
+                      "requests": {
+                        "cpu": "25m",
+                        "memory": "64Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      },
+                      "readOnlyRootFilesystem": true
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "volumeMounts": [
+                      {
+                        "mountPath": "/scripts",
+                        "name": "scripts",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "imagePullSecrets": [
+                  {
+                    "name": "test-registry-push"
+                  }
+                ],
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "serviceAccount": "delivery-certificate-reload",
+                "serviceAccountName": "delivery-certificate-reload",
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                  {
+                    "configMap": {
+                      "defaultMode": 420,
+                      "name": "delivery-certificate-reload"
+                    },
+                    "name": "scripts"
+                  }
+                ]
+              }
+            },
+            "ttlSecondsAfterFinished": 86400
+          }
+        },
+        "schedule": "*/5 * * * *",
+        "startingDeadlineSeconds": 240,
+        "successfulJobsHistoryLimit": 1,
+        "suspend": false,
+        "timeZone": "Etc/UTC"
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-metadata-backup",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "concurrencyPolicy": "Forbid",
+        "failedJobsHistoryLimit": 3,
+        "jobTemplate": {
+          "metadata": {},
+          "spec": {
+            "activeDeadlineSeconds": 3600,
+            "backoffLimit": 2,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "delivery-backup"
+                }
+              },
+              "spec": {
+                "automountServiceAccountToken": false,
+                "containers": [
+                  {
+                    "command": [
+                      "/bin/bash",
+                      "/scripts/backup.sh"
+                    ],
+                    "env": [
+                      {
+                        "name": "DATABASE_HOST",
+                        "valueFrom": {
+                          "configMapKeyRef": {
+                            "key": "DATABASE_HOST",
+                            "name": "delivery-config"
+                          }
+                        }
+                      }
+                    ],
+                    "image": "docker.io/library/postgres:18.6-bookworm@sha256:1c59e2c3c818eaa0f0628f695b36e7c9e362d6b219b36a54a32df645cbd7e1af",
+                    "imagePullPolicy": "IfNotPresent",
+                    "name": "backup",
+                    "resources": {
+                      "limits": {
+                        "cpu": "1",
+                        "memory": "512Mi"
+                      },
+                      "requests": {
+                        "cpu": "100m",
+                        "memory": "128Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      },
+                      "readOnlyRootFilesystem": true
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "volumeMounts": [
+                      {
+                        "mountPath": "/backups",
+                        "name": "backups"
+                      },
+                      {
+                        "mountPath": "/tmp",
+                        "name": "tmp"
+                      },
+                      {
+                        "mountPath": "/backup-secret",
+                        "name": "credentials",
+                        "readOnly": true
+                      },
+                      {
+                        "mountPath": "/trust",
+                        "name": "ca",
+                        "readOnly": true
+                      },
+                      {
+                        "mountPath": "/scripts",
+                        "name": "scripts",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "imagePullSecrets": [
+                  {
+                    "name": "test-registry-push"
+                  }
+                ],
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "serviceAccount": "delivery-db",
+                "serviceAccountName": "delivery-db",
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                  {
+                    "name": "backups",
+                    "persistentVolumeClaim": {
+                      "claimName": "delivery-metadata-backups"
+                    }
+                  },
+                  {
+                    "emptyDir": {
+                      "medium": "Memory",
+                      "sizeLimit": "16Mi"
+                    },
+                    "name": "tmp"
+                  },
+                  {
+                    "name": "credentials",
+                    "secret": {
+                      "defaultMode": 288,
+                      "secretName": "delivery-backup"
+                    }
+                  },
+                  {
+                    "configMap": {
+                      "defaultMode": 420,
+                      "name": "delivery-internal-trust"
+                    },
+                    "name": "ca"
+                  },
+                  {
+                    "configMap": {
+                      "defaultMode": 420,
+                      "name": "delivery-backup-script"
+                    },
+                    "name": "scripts"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "schedule": "0 2 * * *",
+        "startingDeadlineSeconds": 3600,
+        "successfulJobsHistoryLimit": 3,
+        "suspend": true,
+        "timeZone": "Etc/UTC"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "delivery-bootstrap",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "selfSigned": {}
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "delivery-internal",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "ca": {
+          "secretName": "delivery-internal-ca"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-app-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "dnsNames": [
+          "delivery.secure-delivery-test.svc",
+          "delivery.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "delivery-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "delivery-app-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "delivery-internal-ca",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "commonName": "Secure Delivery ACM Test Internal CA",
+        "duration": "87600h",
+        "isCA": true,
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "delivery-bootstrap"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Never",
+          "size": 256
+        },
+        "renewBefore": "8760h",
+        "secretName": "delivery-internal-ca",
+        "subject": {
+          "organizations": [
+            "Secure Delivery Test"
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-postgres-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "dnsNames": [
+          "delivery-postgres.secure-delivery-test.svc",
+          "delivery-postgres.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "delivery-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "delivery-postgres-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-public",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "dnsNames": [
+          "delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+          "identity-secure-delivery-test.apps.acm.sharkbait.tech",
+          "registry-secure-delivery-test.apps.acm.sharkbait.tech"
+        ],
+        "issuerRef": {
+          "kind": "ClusterIssuer",
+          "name": "letsencrypt-prod"
+        },
+        "privateKey": {
+          "algorithm": "RSA",
+          "rotationPolicy": "Always",
+          "size": 2048
+        },
+        "renewBefore": "360h",
+        "secretName": "delivery-public-tls"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "test-identity-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "dnsNames": [
+          "test-identity.secure-delivery-test.svc",
+          "test-identity.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "delivery-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "test-identity-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "test-registry-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "dnsNames": [
+          "test-registry.secure-delivery-test.svc",
+          "test-registry.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "delivery-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "test-registry-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "application-database",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "delivery"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "delivery-backup"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery-postgres"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "application-self-health",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "delivery"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "delivery"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery"
+          }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "application-to-rgw",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "openshift-storage"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "rook-ceph-rgw"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery"
+          }
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "approved-external-https",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "ipBlock": {
+                  "cidr": "45.20.87.146/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.21/32"
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery"
+          }
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "default-deny",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "podSelector": {},
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              },
+              {
+                "port": 6443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "ipBlock": {
+                  "cidr": "172.30.0.1/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.141/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.142/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.143/32"
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery-certificate-reload"
+          }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "required-internal-egress",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 53,
+                "protocol": "UDP"
+              },
+              {
+                "port": 53,
+                "protocol": "TCP"
+              },
+              {
+                "port": 5353,
+                "protocol": "UDP"
+              },
+              {
+                "port": 5353,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "openshift-dns"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "delivery-postgres"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {},
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "router-to-app",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "network.openshift.io/policy-group": "ingress"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "router-to-test-identity",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "network.openshift.io/policy-group": "ingress"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "test-identity"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "router-to-test-registry",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "network.openshift.io/policy-group": "ingress"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5000,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "test-registry"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "test-admin-egress",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "openshift-storage"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "rook-ceph-rgw"
+                  }
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.21/32"
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery-admin"
+          }
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "test-admin-to-database",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "delivery-admin"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery-postgres"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-build-egress",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              },
+              {
+                "port": 6443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchExpressions": [
+            {
+              "key": "openshift.io/build.name",
+              "operator": "Exists"
+            }
+          ]
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-identity-to-database",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "test-identity"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery-postgres"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "cert-manager.io"
+          ],
+          "resourceNames": [
+            "test-registry-cert-manager",
+            "delivery-postgres-cert-manager",
+            "test-identity-cert-manager",
+            "delivery-app-cert-manager"
+          ],
+          "resources": [
+            "certificates"
+          ],
+          "verbs": [
+            "get"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resourceNames": [
+            "test-registry",
+            "test-identity",
+            "delivery"
+          ],
+          "resources": [
+            "deployments"
+          ],
+          "verbs": [
+            "get",
+            "patch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resourceNames": [
+            "delivery-postgres"
+          ],
+          "resources": [
+            "statefulsets"
+          ],
+          "verbs": [
+            "get",
+            "patch"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-route-certificate",
+        "namespace": "secure-delivery-test"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resourceNames": [
+            "delivery-public-tls"
+          ],
+          "resources": [
+            "secrets"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "delivery-certificate-reload"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "delivery-certificate-reload",
+          "namespace": "secure-delivery-test"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-route-certificate",
+        "namespace": "secure-delivery-test"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "delivery-route-certificate"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "router",
+          "namespace": "openshift-ingress"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {
+          "openshift.io/description": "Allows deploymentconfigs in this namespace to rollout pods in this namespace.  It is auto-managed by a controller; remove subjects to disable."
+        },
+        "name": "system:deployers",
+        "namespace": "secure-delivery-test"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "system:deployer"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "deployer",
+          "namespace": "secure-delivery-test"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {
+          "openshift.io/description": "Allows builds in this namespace to push images to this namespace.  It is auto-managed by a controller; remove subjects to disable."
+        },
+        "name": "system:image-builders",
+        "namespace": "secure-delivery-test"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "system:image-builder"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "builder",
+          "namespace": "secure-delivery-test"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "builder",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "default",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "name": "delivery-db",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "deployer",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-identity",
+        "namespace": "secure-delivery-test"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        },
+        "name": "test-registry",
+        "namespace": "secure-delivery-test"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

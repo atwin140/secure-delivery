@@ -1,0 +1,55 @@
+# Optional: apply after enabling OpenShift user-workload monitoring.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata: { name: delivery, namespace: secure-delivery }
+spec:
+  selector: { matchLabels: { app: delivery } }
+  endpoints:
+    - port: https
+      path: /metrics
+      scheme: https
+      interval: 60s
+      tlsConfig:
+        ca:
+          { configMap: { name: delivery-internal-trust, key: service-ca.crt } }
+        serverName: delivery.secure-delivery.svc
+        insecureSkipVerify: false
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata: { name: delivery, namespace: secure-delivery }
+spec:
+  groups:
+    - name: delivery-cleanup
+      rules:
+        - alert: DeliveryCleanupApproachingDeadline
+          expr: delivery_cleanup_oldest_age_seconds > 82800
+          for: 1m
+          labels: { severity: critical }
+          annotations:
+            {
+              summary: "Ciphertext cleanup pending for over 23 hours. Investigate immediately.",
+            }
+        - alert: DeliveryMetricsUnavailable
+          expr: up{service="delivery"} == 0
+          for: 5m
+          labels: { severity: critical }
+          annotations:
+            { summary: "Delivery application monitoring unavailable." }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: delivery-monitoring, namespace: secure-delivery }
+spec:
+  podSelector: { matchLabels: { app: delivery } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            {
+              matchLabels:
+                {
+                  kubernetes.io/metadata.name: openshift-user-workload-monitoring,
+                },
+            }
+      ports: [{ protocol: TCP, port: 8443 }]

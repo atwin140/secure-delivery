@@ -1,0 +1,16 @@
+{
+  "browser": "153.0.8010.36",
+  "plaintextBytes": 1073741824,
+  "files": 100,
+  "largestIndividualBytes": 262144000,
+  "encryptUploadFinalizeMs": 39667.806875,
+  "encryptionTimingCaveat": "This successful run included a 30-second test-harness wait for an absent error element. Do not interpret this value as pure application latency.",
+  "retrieveVerifyMs": 9407.843166999999,
+  "unlockMs": 102.10000002384186,
+  "individualOutputMs": 7941.960958999996,
+  "zipOutputMs": 18651.806208,
+  "zipBytes": 1073753446,
+  "peakChromeProcessTreeRssBytes": 1408204800,
+  "at": "2026-09-12T23:44:41.923Z",
+  "outputCaveat": "Synthetic OPFS output adapter exercises real browser worker/FileSystemWritableFileStream writes. Does not establish native picker or external filesystem output performance. Process-tree RSS includes browser, renderer, GPU and test output storage behavior."
+}

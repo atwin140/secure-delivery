@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: delivery } }
+  template:
+    metadata: { labels: { app: delivery } }
+    spec:
+      serviceAccountName: delivery
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: app
+          image: REPLACE_APP_IMAGE_DIGEST
+          imagePullPolicy: IfNotPresent
+          ports: [{ name: https, containerPort: 8443 }]
+          envFrom: [{ configMapRef: { name: delivery-config } }]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 250m, memory: 256Mi }
+            limits: { cpu: "2", memory: 768Mi }
+          readinessProbe:
+            exec: { command: [node, --import, tsx, scripts/admin.ts, health] }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 8
+          livenessProbe:
+            exec: { command: [node, --import, tsx, scripts/admin.ts, live] }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 8
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: database, mountPath: /secrets/database, readOnly: true }
+            - { name: oidc, mountPath: /secrets/oidc, readOnly: true }
+            - { name: s3, mountPath: /secrets/s3, readOnly: true }
+            - { name: graph, mountPath: /secrets/graph, readOnly: true }
+            - { name: tls, mountPath: /tls, readOnly: true }
+            - { name: service-ca, mountPath: /trust/service, readOnly: true }
+            - { name: external-ca, mountPath: /trust/external, readOnly: true }
+      volumes:
+        - { name: tmp, emptyDir: { medium: Memory, sizeLimit: 64Mi } }
+        - {
+            name: database,
+            secret: { secretName: delivery-database, defaultMode: 288 },
+          }
+        - {
+            name: oidc,
+            secret: { secretName: delivery-oidc, defaultMode: 288 },
+          }
+        - { name: s3, secret: { secretName: delivery-s3, defaultMode: 288 } }
+        - {
+            name: graph,
+            secret:
+              { secretName: delivery-graph, defaultMode: 288, optional: true },
+          }
+        - {
+            name: tls,
+            secret:
+              { secretName: delivery-app-cert-manager-tls, defaultMode: 288 },
+          }
+        - { name: service-ca, configMap: { name: delivery-internal-trust } }
+        - { name: external-ca, configMap: { name: delivery-external-ca } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivery
+  labels: { app: delivery }
+spec:
+  selector: { app: delivery }
+  ports: [{ name: https, port: 8443, targetPort: https }]
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: delivery
+  annotations:
+    haproxy.router.openshift.io/timeout: 3600s
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "30"
+spec:
+  host: REPLACE_HOST
+  to: { kind: Service, name: delivery }
+  port: { targetPort: https }
+  tls:
+    termination: reencrypt
+    externalCertificate: { name: delivery-public-tls }
+    insecureEdgeTerminationPolicy: Redirect
+    destinationCACertificate: REPLACE_WITH_SERVICE_CA_PEM
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: delivery }
+spec:
+  minAvailable: 1
+  selector: { matchLabels: { app: delivery } }

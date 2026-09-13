@@ -1,0 +1,28 @@
+{
+  "startedAt": "2026-09-13T01:00:38.773Z",
+  "browser": "153.0.8010.36",
+  "origin": "https://delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+  "syntheticOutputAdapter": true,
+  "realKeycloakLogin": true,
+  "requestCanariesAbsent": true,
+  "finalized": true,
+  "emailDisabled": true,
+  "fullVerificationBeforeOutput": true,
+  "capabilityAbsentFromRequestUrls": true,
+  "individualOutputMatches": true,
+  "zipOutputWritten": true,
+  "axeViolations": [
+    0,
+    0
+  ],
+  "crossOwnerDenied": true,
+  "missingRoleDenied": true,
+  "emailApiDenied": true,
+  "backupJob": "test-backup-mtz3y3r0",
+  "restoreCandidateRepositoryId": "bf00a8b294cda706a43f54770aa776a0",
+  "metadataBackupWhileFinalized": true,
+  "revokedRetrievalDenied": true,
+  "pendingRetrievalDenied": true,
+  "status": "passed",
+  "finishedAt": "2026-09-13T01:01:06.960Z"
+}

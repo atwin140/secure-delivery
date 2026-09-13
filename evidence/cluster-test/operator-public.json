@@ -1,0 +1,79 @@
+{
+  "namespace": "secure-delivery-test",
+  "appImage": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery@sha256:cbebc4265b947ad246ba70a1d7b8869ea63342a8726d3b3201832e6383043054",
+  "postgresImage": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery-postgres@sha256:1cf5817ed0b926822924ee41ceac4c86e05fb49b40296a68168ace752d1b6a81",
+  "host": "delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+  "blockStorageClass": "ocs-storagecluster-ceph-rbd",
+  "serviceCaFile": ".local/cluster-test/cert-manager-ca.crt",
+  "externalCaFile": ".local/cluster-test/service-ca.crt",
+  "externalHttpsCidrs": [
+    "45.20.87.146/32",
+    "10.0.1.21/32"
+  ],
+  "config": {
+    "OIDC_ISSUER": "https://identity-secure-delivery-test.apps.acm.sharkbait.tech/realms/delivery-test",
+    "OIDC_CLIENT_ID": "secure-delivery",
+    "OIDC_ROLE_CLIENT": "secure-delivery",
+    "OIDC_REQUIRED_ROLE": "repository-sender",
+    "S3_ENDPOINT": "https://rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc",
+    "S3_REGION": "us-east-1",
+    "S3_BUCKET": "secure-delivery-test-6758a344-3b14-4079-b38f-8b780b49037f",
+    "S3_STORAGE_CLASS": "ocs-storagecluster-ceph-rgw",
+    "GRAPH_TENANT_ID": "",
+    "GRAPH_CLIENT_ID": "",
+    "GRAPH_MAILBOX": "",
+    "LINK_EMAIL_ENABLED": "false",
+    "BRAND_NAME": "Secure Delivery \u00b7 deployment test",
+    "SUPPORT_TEXT": "Synthetic test deployment. Contact the test operator for access.",
+    "RETRIEVAL_ENABLED": "false",
+    "AUDIT_RETENTION_DAYS": "90"
+  },
+  "certManager": {
+    "publicIssuer": {
+      "name": "letsencrypt-prod",
+      "kind": "ClusterIssuer"
+    },
+    "internalIssuer": {
+      "name": "delivery-internal",
+      "kind": "Issuer"
+    },
+    "publicHosts": [
+      "delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+      "identity-secure-delivery-test.apps.acm.sharkbait.tech",
+      "registry-secure-delivery-test.apps.acm.sharkbait.tech"
+    ],
+    "apiCidrs": [
+      "172.30.0.1/32",
+      "10.0.1.141/32",
+      "10.0.1.142/32",
+      "10.0.1.143/32"
+    ],
+    "imagePullSecrets": [
+      {
+        "name": "test-registry-push"
+      }
+    ],
+    "targets": [
+      {
+        "name": "test-registry",
+        "kind": "deployments",
+        "certificate": "test-registry-cert-manager"
+      },
+      {
+        "name": "delivery-postgres",
+        "kind": "statefulsets",
+        "certificate": "delivery-postgres-cert-manager"
+      },
+      {
+        "name": "test-identity",
+        "kind": "deployments",
+        "certificate": "test-identity-cert-manager"
+      },
+      {
+        "name": "delivery",
+        "kind": "deployments",
+        "certificate": "delivery-app-cert-manager"
+      }
+    ]
+  }
+}

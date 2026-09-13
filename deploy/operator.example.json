@@ -1,0 +1,38 @@
+{
+  "namespace": "secure-delivery",
+  "appImage": "REPLACE_REGISTRY/delivery@sha256:REPLACE_DIGEST",
+  "postgresImage": "REPLACE_REGISTRY/delivery-postgres@sha256:REPLACE_DIGEST",
+  "host": "REPLACE_HOST",
+  "blockStorageClass": "REPLACE_BLOCK_STORAGE_CLASS",
+  "externalCaFile": "REPLACE_EXTERNAL_CA_FILE_PATH",
+  "serviceCaFile": "REPLACE_SERVICE_CA_FILE_PATH",
+  "externalHttpsCidrs": ["REPLACE_OPERATOR_APPROVED_CIDRS"],
+  "config": {
+    "OIDC_ISSUER": "https://REPLACE_KEYCLOAK/realms/REPLACE_REALM",
+    "OIDC_CLIENT_ID": "secure-delivery",
+    "OIDC_ROLE_CLIENT": "secure-delivery",
+    "OIDC_REQUIRED_ROLE": "repository-sender",
+    "S3_ENDPOINT": "https://REPLACE_ODF_ENDPOINT",
+    "S3_REGION": "REPLACE_ODF_REGION",
+    "S3_BUCKET": "REPLACE_DOCUMENT_BUCKET",
+    "S3_STORAGE_CLASS": "REPLACE_S3_PROVISIONING_CLASS",
+    "GRAPH_TENANT_ID": "REPLACE_TENANT_ID",
+    "GRAPH_CLIENT_ID": "REPLACE_GRAPH_CLIENT_ID",
+    "GRAPH_MAILBOX": "REPLACE_DEDICATED_MAILBOX",
+    "BRAND_NAME": "Secure Delivery",
+    "SUPPORT_TEXT": "Contact your sender for access help.",
+    "RETRIEVAL_ENABLED": "false",
+    "AUDIT_RETENTION_DAYS": "90"
+  },
+  "certManager": {
+    "publicIssuer": {
+      "name": "letsencrypt-prod",
+      "kind": "ClusterIssuer"
+    },
+    "internalIssuer": {
+      "name": "delivery-internal",
+      "kind": "Issuer"
+    },
+    "apiCidrs": ["REPLACE_API_SERVICE_IP/32", "REPLACE_API_ENDPOINT_IP/32"]
+  }
+}

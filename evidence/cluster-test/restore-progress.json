@@ -1,0 +1,17 @@
+{
+  "startedAt": "2026-09-13T01:02:56.483Z",
+  "restoreJob": "test-restore-mtz4103l",
+  "repositoryId": "bf00a8b294cda706a43f54770aa776a0",
+  "status": "passed",
+  "databaseRestoreSeconds": 11,
+  "archiveBytes": 9981,
+  "invalidationSeconds": 4,
+  "cleanupSeconds": 5,
+  "checksFile": "restore-and-provider-checks.ndjson",
+  "applicationHealthyAt": "2026-09-13T01:09:45.300Z",
+  "interactiveDrillElapsedSeconds": 408.817,
+  "applicationReplicasDuringRestore": 0,
+  "retrievalEnabledDuringRestore": false,
+  "applicationReplicasAfterRecovery": 2,
+  "retrievalEnabledAfterRecovery": true
+}

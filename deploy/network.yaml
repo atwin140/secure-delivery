@@ -1,0 +1,64 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny }
+spec: { podSelector: {}, policyTypes: [Ingress, Egress] }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: router-to-app }
+spec:
+  podSelector: { matchLabels: { app: delivery } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            { matchLabels: { network.openshift.io/policy-group: ingress } }
+      ports: [{ protocol: TCP, port: 8443 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: application-database }
+spec:
+  podSelector: { matchLabels: { app: delivery-postgres } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: { matchLabels: { app: delivery } }
+        - podSelector: { matchLabels: { app: delivery-backup } }
+      ports: [{ protocol: TCP, port: 5432 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: required-internal-egress }
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            { matchLabels: { kubernetes.io/metadata.name: openshift-dns } }
+      ports:
+        [
+          { protocol: UDP, port: 53 },
+          { protocol: TCP, port: 53 },
+          { protocol: UDP, port: 5353 },
+          { protocol: TCP, port: 5353 },
+        ]
+    - to:
+        - podSelector: { matchLabels: { app: delivery-postgres } }
+      ports: [{ protocol: TCP, port: 5432 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: application-self-health }
+spec:
+  podSelector: { matchLabels: { app: delivery } }
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from: [{ podSelector: { matchLabels: { app: delivery } } }]
+      ports: [{ protocol: TCP, port: 8443 }]
+  egress:
+    - to: [{ podSelector: { matchLabels: { app: delivery } } }]
+      ports: [{ protocol: TCP, port: 8443 }]
+# External HTTPS is intentionally absent until render.mjs receives explicit
+# operator-approved CIDRs for S3, Keycloak, Entra, and Graph.

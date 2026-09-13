@@ -1,0 +1,160 @@
+{
+  "checkedAt": "2026-09-13T01:34:53.481Z",
+  "namespace": "secure-delivery-test",
+  "certificates": [
+    {
+      "name": "delivery-app-cert-manager",
+      "issuer": "delivery-internal",
+      "ready": true,
+      "revision": 5,
+      "notAfter": "2026-12-12T01:34:07Z",
+      "renewalTime": "2026-11-12T01:34:07Z"
+    },
+    {
+      "name": "delivery-internal-ca",
+      "issuer": "delivery-bootstrap",
+      "ready": true,
+      "revision": 1,
+      "notAfter": "2036-09-10T01:18:32Z",
+      "renewalTime": "2035-09-11T01:18:32Z"
+    },
+    {
+      "name": "delivery-postgres-cert-manager",
+      "issuer": "delivery-internal",
+      "ready": true,
+      "revision": 1,
+      "notAfter": "2026-12-12T01:18:34Z",
+      "renewalTime": "2026-11-12T01:18:34Z"
+    },
+    {
+      "name": "delivery-public",
+      "issuer": "letsencrypt-prod",
+      "ready": true,
+      "revision": 1,
+      "notAfter": "2026-12-12T00:21:42Z",
+      "renewalTime": "2026-11-27T00:21:42Z"
+    },
+    {
+      "name": "test-identity-cert-manager",
+      "issuer": "delivery-internal",
+      "ready": true,
+      "revision": 1,
+      "notAfter": "2026-12-12T01:18:35Z",
+      "renewalTime": "2026-11-12T01:18:35Z"
+    },
+    {
+      "name": "test-registry-cert-manager",
+      "issuer": "delivery-internal",
+      "ready": true,
+      "revision": 1,
+      "notAfter": "2026-12-12T01:18:33Z",
+      "renewalTime": "2026-11-12T01:18:33Z"
+    }
+  ],
+  "routes": [
+    {
+      "hostname": "delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+      "status": 200,
+      "verified": true,
+      "certificateMatchesSecret": true,
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YR2"
+      },
+      "validTo": "Dec 12 00:21:42 2026 GMT",
+      "fingerprint256": "09:AE:99:D0:DD:02:F4:02:F4:E8:56:93:16:8F:BA:38:67:7C:6D:7B:D6:66:B3:AF:C4:D3:A7:AE:72:B0:CD:83",
+      "protocol": "TLSv1.3"
+    },
+    {
+      "hostname": "identity-secure-delivery-test.apps.acm.sharkbait.tech",
+      "status": 200,
+      "verified": true,
+      "certificateMatchesSecret": true,
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YR2"
+      },
+      "validTo": "Dec 12 00:21:42 2026 GMT",
+      "fingerprint256": "09:AE:99:D0:DD:02:F4:02:F4:E8:56:93:16:8F:BA:38:67:7C:6D:7B:D6:66:B3:AF:C4:D3:A7:AE:72:B0:CD:83",
+      "protocol": "TLSv1.3"
+    },
+    {
+      "hostname": "registry-secure-delivery-test.apps.acm.sharkbait.tech",
+      "status": 401,
+      "verified": true,
+      "certificateMatchesSecret": true,
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YR2"
+      },
+      "validTo": "Dec 12 00:21:42 2026 GMT",
+      "fingerprint256": "09:AE:99:D0:DD:02:F4:02:F4:E8:56:93:16:8F:BA:38:67:7C:6D:7B:D6:66:B3:AF:C4:D3:A7:AE:72:B0:CD:83",
+      "protocol": "TLSv1.3"
+    }
+  ],
+  "workloads": [
+    {
+      "name": "delivery",
+      "desired": 2,
+      "ready": 2,
+      "tlsSecret": "delivery-app-cert-manager-tls",
+      "trust": "delivery-internal-trust",
+      "certificateRevision": "86f13c2f-a18d-433a-9b06-a6e66e37cbd0/5"
+    },
+    {
+      "name": "test-identity",
+      "desired": 1,
+      "ready": 1,
+      "tlsSecret": "test-identity-cert-manager-tls",
+      "trust": "delivery-internal-trust",
+      "certificateRevision": "9a638db7-e654-48fb-9906-248af827a2bc/1"
+    },
+    {
+      "name": "test-registry",
+      "desired": 1,
+      "ready": 1,
+      "tlsSecret": "test-registry-cert-manager-tls",
+      "certificateRevision": "26fb8919-b613-4da2-bf87-59dd951104f6/1"
+    },
+    {
+      "name": "delivery-postgres",
+      "desired": 1,
+      "ready": 1,
+      "tlsSecret": "delivery-postgres-cert-manager-tls",
+      "certificateRevision": "1a48540c-dfa3-41cb-be2d-c5d505242f0b/1"
+    }
+  ],
+  "internalAppTls": [
+    {
+      "pod": "delivery-c8c686565-cxps6",
+      "verified": true,
+      "fingerprint": "BC:8C:2A:AE:D6:39:21:A7:DF:D2:47:84:F1:AF:D9:7E:4A:4C:43:89:6D:36:AF:51:E1:EA:DE:AB:67:FA:FB:D1",
+      "badHostnameRejected": true,
+      "badCaRejected": true,
+      "caCertificates": 1
+    },
+    {
+      "pod": "delivery-c8c686565-tb9mt",
+      "verified": true,
+      "fingerprint": "BC:8C:2A:AE:D6:39:21:A7:DF:D2:47:84:F1:AF:D9:7E:4A:4C:43:89:6D:36:AF:51:E1:EA:DE:AB:67:FA:FB:D1",
+      "badHostnameRejected": true,
+      "badCaRejected": true,
+      "caCertificates": 1
+    }
+  ],
+  "renewal": {
+    "succeeded": true,
+    "started": "2026-09-13T01:34:07Z",
+    "finished": "2026-09-13T01:34:53Z",
+    "log": [
+      "test-registry: ready",
+      "delivery-postgres: ready",
+      "test-identity: ready",
+      "delivery: certificate revision 5 rollout requested",
+      "delivery: ready"
+    ]
+  }
+}

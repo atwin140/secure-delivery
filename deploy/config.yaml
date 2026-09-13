@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: delivery-config
+data:
+  APP_ORIGIN: https://REPLACE_HOST
+  BRAND_NAME: Secure Delivery
+  SUPPORT_TEXT: Contact your sender for access help.
+  OIDC_ISSUER: https://REPLACE_KEYCLOAK/realms/REPLACE_REALM
+  OIDC_CLIENT_ID: secure-delivery
+  OIDC_ROLE_CLIENT: secure-delivery
+  OIDC_REQUIRED_ROLE: repository-sender
+  S3_ENDPOINT: https://REPLACE_ODF_ENDPOINT
+  S3_REGION: REPLACE_ODF_REGION
+  S3_BUCKET: REPLACE_DOCUMENT_BUCKET
+  S3_STORAGE_CLASS: REPLACE_S3_PROVISIONING_CLASS
+  GRAPH_TENANT_ID: REPLACE_TENANT_ID
+  GRAPH_CLIENT_ID: REPLACE_GRAPH_CLIENT_ID
+  GRAPH_MAILBOX: REPLACE_DEDICATED_MAILBOX
+  AUDIT_RETENTION_DAYS: "90"
+  RETRIEVAL_ENABLED: "false"
+  LINK_EMAIL_ENABLED: "true"
+  DATABASE_HOST: delivery-postgres.secure-delivery.svc
+  DATABASE_NAME: delivery
+  DATABASE_USER: delivery
+  DATABASE_PASSWORD_FILE: /secrets/database/password
+  APP_INTERNAL_HOST: delivery.secure-delivery.svc
+  DATABASE_CA_FILE: /trust/service/service-ca.crt
+  OIDC_CLIENT_SECRET_FILE: /secrets/oidc/client-secret
+  S3_ACCESS_KEY_FILE: /secrets/s3/access-key
+  S3_SECRET_KEY_FILE: /secrets/s3/secret-key
+  GRAPH_CLIENT_SECRET_FILE: /secrets/graph/client-secret
+  TLS_CERT_FILE: /tls/tls.crt
+  TLS_KEY_FILE: /tls/tls.key
+  NODE_EXTRA_CA_CERTS: /trust/external/ca-bundle.pem
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: delivery-internal-trust
+data:
+  service-ca.crt: REPLACE_WITH_SERVICE_CA_PEM
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: delivery-external-ca
+data:
+  ca-bundle.pem: REPLACE_WITH_TRUSTED_EXTERNAL_CA_PEM
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: delivery-postgres-config
+data:
+  pg_hba.conf: |
+    local all all reject
+    hostnossl all all 0.0.0.0/0 reject
+    hostnossl all all ::/0 reject
+    hostssl delivery delivery 0.0.0.0/0 scram-sha-256
+    hostssl delivery delivery ::/0 scram-sha-256
+    hostssl delivery delivery_backup 0.0.0.0/0 scram-sha-256
+    hostssl delivery delivery_backup ::/0 scram-sha-256
+    hostssl all postgres 0.0.0.0/0 scram-sha-256
+    hostssl all postgres ::/0 scram-sha-256

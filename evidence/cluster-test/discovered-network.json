@@ -1,0 +1,6 @@
+{
+  "inClusterIdentityHttpsCidrs": [
+    "10.0.1.21/32"
+  ],
+  "source": "DNS lookup from the restricted test application pod; public workstation DNS resolves a different IP"
+}

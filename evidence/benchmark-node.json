@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-12T23:24:25.122Z",
+  "runtime": "v24.19.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "cpu": "Apple M4",
+  "fullSize": true,
+  "plaintextBytes": 1073741824,
+  "ciphertextBytes": 1073834107,
+  "files": 100,
+  "largestOutputBytes": 262144000,
+  "peakProcessRssBytes": 509001728,
+  "unlockMs": 85.14741700000002,
+  "encryptMs": 5255.217833,
+  "verifyMs": 6168.027666999999,
+  "individualOutputMs": 6105.537875000002,
+  "zipOutputMs": 13040.065707999998,
+  "interpretation": "Node filesystem benchmark, not a browser support claim. Peak RSS includes Node and libsodium WASM."
+}

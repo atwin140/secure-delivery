@@ -1,0 +1,177 @@
+[
+  {
+    "name": "delivery-cdbd6cff-6526f",
+    "app": "delivery",
+    "node": "acm-wk-02",
+    "scc": "restricted-v2",
+    "serviceAccount": "delivery",
+    "automountServiceAccountToken": false,
+    "podSecurity": {
+      "fsGroup": 1001380000,
+      "runAsNonRoot": true,
+      "seLinuxOptions": {
+        "level": "s0:c37,c24"
+      },
+      "seccompProfile": {
+        "type": "RuntimeDefault"
+      }
+    },
+    "containers": [
+      {
+        "name": "app",
+        "image": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery@sha256:cbebc4265b947ad246ba70a1d7b8869ea63342a8726d3b3201832e6383043054",
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          },
+          "readOnlyRootFilesystem": true,
+          "runAsUser": 1001380000
+        }
+      }
+    ],
+    "ready": true
+  },
+  {
+    "name": "delivery-cdbd6cff-jv4hm",
+    "app": "delivery",
+    "node": "acm-wk-01",
+    "scc": "restricted-v2",
+    "serviceAccount": "delivery",
+    "automountServiceAccountToken": false,
+    "podSecurity": {
+      "fsGroup": 1001380000,
+      "runAsNonRoot": true,
+      "seLinuxOptions": {
+        "level": "s0:c37,c24"
+      },
+      "seccompProfile": {
+        "type": "RuntimeDefault"
+      }
+    },
+    "containers": [
+      {
+        "name": "app",
+        "image": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery@sha256:cbebc4265b947ad246ba70a1d7b8869ea63342a8726d3b3201832e6383043054",
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          },
+          "readOnlyRootFilesystem": true,
+          "runAsUser": 1001380000
+        }
+      }
+    ],
+    "ready": true
+  },
+  {
+    "name": "delivery-postgres-0",
+    "app": "delivery-postgres",
+    "node": "acm-wk-03",
+    "scc": "restricted-v2",
+    "serviceAccount": "delivery-db",
+    "automountServiceAccountToken": false,
+    "podSecurity": {
+      "fsGroup": 1001380000,
+      "runAsNonRoot": true,
+      "seLinuxOptions": {
+        "level": "s0:c37,c24"
+      },
+      "seccompProfile": {
+        "type": "RuntimeDefault"
+      }
+    },
+    "containers": [
+      {
+        "name": "postgres",
+        "image": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery-postgres@sha256:1cf5817ed0b926822924ee41ceac4c86e05fb49b40296a68168ace752d1b6a81",
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          },
+          "readOnlyRootFilesystem": true,
+          "runAsUser": 1001380000
+        }
+      }
+    ],
+    "ready": true
+  },
+  {
+    "name": "test-identity-5c569c9cdb-7m8xn",
+    "app": "test-identity",
+    "node": "acm-wk-02",
+    "scc": "restricted-v2",
+    "serviceAccount": "test-identity",
+    "automountServiceAccountToken": false,
+    "podSecurity": {
+      "fsGroup": 1001380000,
+      "runAsNonRoot": true,
+      "seLinuxOptions": {
+        "level": "s0:c37,c24"
+      },
+      "seccompProfile": {
+        "type": "RuntimeDefault"
+      }
+    },
+    "containers": [
+      {
+        "name": "identity",
+        "image": "registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623",
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          },
+          "readOnlyRootFilesystem": true,
+          "runAsUser": 1001380000
+        }
+      }
+    ],
+    "ready": true
+  },
+  {
+    "name": "test-registry-678bf894d6-kcz7x",
+    "app": "test-registry",
+    "node": "acm-wk-03",
+    "scc": "restricted-v2",
+    "serviceAccount": "test-registry",
+    "automountServiceAccountToken": false,
+    "podSecurity": {
+      "fsGroup": 1001380000,
+      "runAsNonRoot": true,
+      "seLinuxOptions": {
+        "level": "s0:c37,c24"
+      },
+      "seccompProfile": {
+        "type": "RuntimeDefault"
+      }
+    },
+    "containers": [
+      {
+        "name": "registry",
+        "image": "docker.io/library/registry:3@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33",
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          },
+          "readOnlyRootFilesystem": true,
+          "runAsUser": 1001380000
+        }
+      }
+    ],
+    "ready": true
+  }
+]

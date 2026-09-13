@@ -1,0 +1,11 @@
+# Dependencies and provenance
+
+Exact direct/transitive versions and integrity hashes are in `package-lock.json`. `evidence/sbom.cdx.json` is the npm CycloneDX inventory (includes development/test dependencies); it is not a container-layer SBOM. `evidence/npm-audit.json` records the actual registry audit result. The base image references in `deploy/image-pins.json` were resolved from the official Docker registry and pinned by manifest digest; application images were not built locally because the Podman VM/socket was unavailable.
+
+Runtime choices: Node 24 LTS; Fastify 5 plus cookie/static/rate-limit plugins; React 19; locally bundled libsodium-wrappers-sumo 0.8.4; openid-client 6 and jose for OIDC/JWT validation; pg for TLS Postgres; AWS SDK S3 client; tsx for executing the server's TypeScript. Vite/TypeScript, Vitest, Playwright/axe, PGlite, native libsodium and ZIP/YAML verification libraries are build/test tools. Native libsodium cross-checks the WASM wrapper's primitive outputs, not a fully independent cryptographic design.
+
+Sources used to choose supported lines and protocol settings are in `research.md` and `decisions.md`. Registry exact versions take precedence over stale documentation landing-page patch numbers. The local verification runtime was Node 24.19.0; the pinned container/CI runtime is 24.21.0. Production dependency installation uses `npm ci --ignore-scripts` and the committed lockfile. Browser crypto has no CDN or external script request.
+
+For a dependency update: check upstream support/security advisories, change explicit pins, regenerate the lockfile, run golden/native interoperability and browser tests, benchmark if crypto/runtime/storage behavior changed, update SBOM and image digests, and retain the new evidence. Regenerating fixtures is an explicit protocol-development action; tests do not rewrite golden fixtures automatically. A changed format or KDF requires a new protocol version, not a ConfigMap override.
+
+Collect a complete image SBOM and vulnerability scan from the built image in CI/operator validation. A zero-finding npm audit is only its database's view at collection time and is not proof that code or deployment is vulnerability-free.

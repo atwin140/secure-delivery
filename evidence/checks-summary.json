@@ -1,0 +1,27 @@
+{
+  "collectedAt": "2026-09-13T01:12:15.212134+00:00",
+  "node": "v24.19.0",
+  "unitTests": 48,
+  "unitPassed": 48,
+  "browserExpected": 4,
+  "browserUnexpected": 0,
+  "auditVulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "typescript": "passed",
+  "viteBuild": "passed",
+  "kustomize": "passed",
+  "shellSyntax": "passed",
+  "containerBuild": "passed - both Containerfiles built using OpenShift Buildah",
+  "productionDeployment": "not performed - isolated synthetic deployment only",
+  "liveEmail": "disabled - not authorized",
+  "isolatedDeployment": "passed - ACM secure-delivery-test, two healthy app replicas",
+  "realKeycloak": "passed - isolated TLS test realm",
+  "realOdf": "passed - dedicated RGW bucket preflight and roundtrip",
+  "nativeBackupRestore": "passed - synthetic 9981-byte archive and safe invalidation"
+}

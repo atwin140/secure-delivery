@@ -1,0 +1,445 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "delivery-public",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "secretName": "delivery-public-tls",
+        "dnsNames": [
+          "delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+          "identity-secure-delivery-test.apps.acm.sharkbait.tech",
+          "registry-secure-delivery-test.apps.acm.sharkbait.tech"
+        ],
+        "privateKey": {
+          "algorithm": "RSA",
+          "size": 2048,
+          "rotationPolicy": "Always"
+        },
+        "renewBefore": "360h",
+        "issuerRef": {
+          "name": "letsencrypt-prod",
+          "kind": "ClusterIssuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "test-registry-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "secretName": "test-registry-cert-manager-tls",
+        "dnsNames": [
+          "test-registry.secure-delivery-test.svc",
+          "test-registry.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "delivery-postgres-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "secretName": "delivery-postgres-cert-manager-tls",
+        "dnsNames": [
+          "delivery-postgres.secure-delivery-test.svc",
+          "delivery-postgres.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "test-identity-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "secretName": "test-identity-cert-manager-tls",
+        "dnsNames": [
+          "test-identity.secure-delivery-test.svc",
+          "test-identity.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "delivery-app-cert-manager",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "secretName": "delivery-app-cert-manager-tls",
+        "dnsNames": [
+          "delivery.secure-delivery-test.svc",
+          "delivery.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "delivery-route-certificate",
+        "namespace": "secure-delivery-test"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "secrets"
+          ],
+          "resourceNames": [
+            "delivery-public-tls"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "delivery-route-certificate",
+        "namespace": "secure-delivery-test"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "delivery-route-certificate"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "router",
+          "namespace": "openshift-ingress"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "automountServiceAccountToken": false
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "cert-manager.io"
+          ],
+          "resources": [
+            "certificates"
+          ],
+          "resourceNames": [
+            "test-registry-cert-manager",
+            "delivery-postgres-cert-manager",
+            "test-identity-cert-manager",
+            "delivery-app-cert-manager"
+          ],
+          "verbs": [
+            "get"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "deployments"
+          ],
+          "resourceNames": [
+            "test-registry",
+            "test-identity",
+            "delivery"
+          ],
+          "verbs": [
+            "get",
+            "patch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resources": [
+            "statefulsets"
+          ],
+          "resourceNames": [
+            "delivery-postgres"
+          ],
+          "verbs": [
+            "get",
+            "patch"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "delivery-certificate-reload"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "delivery-certificate-reload",
+          "namespace": "secure-delivery-test"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "data": {
+        "certificate-reload.mjs": "// Namespace-scoped renewal bridge. Reads public Certificate status, never TLS Secrets.\nimport { readFileSync } from \"node:fs\";\nimport { request } from \"node:https\";\nconst directory = \"/var/run/secrets/kubernetes.io/serviceaccount/\";\nconst namespace = readFileSync(directory + \"namespace\", \"utf8\").trim();\nconst targets = JSON.parse(readFileSync(\"/scripts/targets.json\", \"utf8\"));\nconst annotation = \"delivery.example/certificate-revision\";\nconst pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\nfunction api(path, method = \"GET\", body) {\n  return new Promise((resolve, reject) => {\n    const req = request(\n      {\n        hostname: \"kubernetes.default.svc\",\n        port: 443,\n        path,\n        method,\n        ca: readFileSync(directory + \"ca.crt\"),\n        rejectUnauthorized: true,\n        headers: {\n          Authorization:\n            \"Bearer \" + readFileSync(directory + \"token\", \"utf8\").trim(),\n          ...(body ? { \"Content-Type\": \"application/merge-patch+json\" } : {}),\n        },\n      },\n      (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n          if (data.length > 4 * 1024 * 1024)\n            req.destroy(new Error(\"API response too large\"));\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode < 200 || res.statusCode >= 300)\n            return reject(new Error(\"Kubernetes API status \" + res.statusCode));\n          try {\n            resolve(JSON.parse(data));\n          } catch {\n            reject(new Error(\"Invalid Kubernetes API response\"));\n          }\n        });\n      },\n    );\n    req.setTimeout(20000, () =>\n      req.destroy(new Error(\"Kubernetes API timeout\")),\n    );\n    req.on(\"error\", () => reject(new Error(\"Kubernetes API request failed\")));\n    req.end(body ? JSON.stringify(body) : undefined);\n  });\n}\nfunction healthy(d) {\n  const desired = d.spec.replicas ?? 1,\n    s = d.status ?? {};\n  return (\n    s.observedGeneration >= d.metadata.generation &&\n    (s.readyReplicas ?? 0) === desired &&\n    (s.updatedReplicas ?? 0) === desired &&\n    (d.kind === \"StatefulSet\"\n      ? s.currentRevision === s.updateRevision\n      : (s.replicas ?? 0) === desired)\n  );\n}\ntry {\n  for (const t of targets) {\n    const certificate = await api(\n      `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${t.certificate}`,\n    );\n    if (\n      !certificate.status?.conditions?.some(\n        (c) =>\n          c.type === \"Ready\" &&\n          c.status === \"True\" &&\n          c.observedGeneration === certificate.metadata.generation,\n      ) ||\n      !certificate.status.revision\n    )\n      throw Error(\"Certificate is not ready: \" + t.certificate);\n    const revision =\n      certificate.metadata.uid + \"/\" + certificate.status.revision;\n    const path = `/apis/apps/v1/namespaces/${namespace}/${t.kind}/${t.name}`;\n    let workload = await api(path);\n    // An intentionally stopped workload must remain stopped.\n    if (workload.spec.replicas === 0) {\n      console.log(t.name + \": suspended\");\n      continue;\n    }\n    const changed =\n      workload.spec.template.metadata.annotations?.[annotation] !== revision;\n    if (changed) {\n      await api(path, \"PATCH\", {\n        spec: {\n          template: { metadata: { annotations: { [annotation]: revision } } },\n        },\n      });\n      console.log(\n        t.name +\n          \": certificate revision \" +\n          certificate.status.revision +\n          \" rollout requested\",\n      );\n    }\n    const deadline = Date.now() + 300000;\n    do {\n      workload = await api(path);\n      if (healthy(workload)) break;\n      if (Date.now() > deadline) throw Error(\"Rollout timeout: \" + t.name);\n      await pause(5000);\n    } while (true);\n    console.log(t.name + \": ready\");\n  }\n} catch (error) {\n  // Messages above contain only operation names and status codes, never API response bodies.\n  console.error(\n    error instanceof Error ? error.message : \"Certificate reload failed\",\n  );\n  process.exitCode = 1;\n}\n",
+        "targets.json": "[{\"name\":\"test-registry\",\"kind\":\"deployments\",\"certificate\":\"test-registry-cert-manager\"},{\"name\":\"delivery-postgres\",\"kind\":\"statefulsets\",\"certificate\":\"delivery-postgres-cert-manager\"},{\"name\":\"test-identity\",\"kind\":\"deployments\",\"certificate\":\"test-identity-cert-manager\"},{\"name\":\"delivery\",\"kind\":\"deployments\",\"certificate\":\"delivery-app-cert-manager\"}]"
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "podSelector": {
+          "matchLabels": {
+            "app": "delivery-certificate-reload"
+          }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ],
+        "ingress": [],
+        "egress": [
+          {
+            "to": [
+              {
+                "ipBlock": {
+                  "cidr": "172.30.0.1/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.141/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.142/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.143/32"
+                }
+              }
+            ],
+            "ports": [
+              {
+                "protocol": "TCP",
+                "port": 443
+              },
+              {
+                "protocol": "TCP",
+                "port": 6443
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "name": "delivery-certificate-reload",
+        "namespace": "secure-delivery-test"
+      },
+      "spec": {
+        "schedule": "*/5 * * * *",
+        "timeZone": "Etc/UTC",
+        "concurrencyPolicy": "Forbid",
+        "startingDeadlineSeconds": 240,
+        "successfulJobsHistoryLimit": 1,
+        "failedJobsHistoryLimit": 2,
+        "jobTemplate": {
+          "spec": {
+            "backoffLimit": 1,
+            "activeDeadlineSeconds": 1500,
+            "ttlSecondsAfterFinished": 86400,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "delivery-certificate-reload"
+                }
+              },
+              "spec": {
+                "restartPolicy": "Never",
+                "serviceAccountName": "delivery-certificate-reload",
+                "automountServiceAccountToken": true,
+                "imagePullSecrets": [
+                  {
+                    "name": "test-registry-push"
+                  }
+                ],
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "containers": [
+                  {
+                    "name": "reload",
+                    "image": "registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery@sha256:cbebc4265b947ad246ba70a1d7b8869ea63342a8726d3b3201832e6383043054",
+                    "command": [
+                      "node",
+                      "/scripts/certificate-reload.mjs"
+                    ],
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "readOnlyRootFilesystem": true,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      }
+                    },
+                    "resources": {
+                      "requests": {
+                        "cpu": "25m",
+                        "memory": "64Mi"
+                      },
+                      "limits": {
+                        "cpu": "250m",
+                        "memory": "128Mi"
+                      }
+                    },
+                    "volumeMounts": [
+                      {
+                        "name": "scripts",
+                        "mountPath": "/scripts",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "volumes": [
+                  {
+                    "name": "scripts",
+                    "configMap": {
+                      "name": "delivery-certificate-reload"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "suspend": true
+      }
+    }
+  ]
+}

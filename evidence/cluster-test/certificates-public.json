@@ -1,0 +1,229 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "name": "delivery-bootstrap",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "selfSigned": {}
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "delivery-internal-ca",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "secretName": "delivery-internal-ca",
+        "isCA": true,
+        "commonName": "Secure Delivery ACM Test Internal CA",
+        "subject": {
+          "organizations": [
+            "Secure Delivery Test"
+          ]
+        },
+        "duration": "87600h",
+        "renewBefore": "8760h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Never"
+        },
+        "issuerRef": {
+          "name": "delivery-bootstrap",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "name": "delivery-internal",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "ca": {
+          "secretName": "delivery-internal-ca"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "delivery-public",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "secretName": "delivery-public-tls",
+        "dnsNames": [
+          "delivery-secure-delivery-test.apps.acm.sharkbait.tech",
+          "identity-secure-delivery-test.apps.acm.sharkbait.tech",
+          "registry-secure-delivery-test.apps.acm.sharkbait.tech"
+        ],
+        "privateKey": {
+          "algorithm": "RSA",
+          "size": 2048,
+          "rotationPolicy": "Always"
+        },
+        "renewBefore": "360h",
+        "issuerRef": {
+          "name": "letsencrypt-prod",
+          "kind": "ClusterIssuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "test-registry-cert-manager",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "secretName": "test-registry-cert-manager-tls",
+        "dnsNames": [
+          "test-registry.secure-delivery-test.svc",
+          "test-registry.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "delivery-postgres-cert-manager",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "secretName": "delivery-postgres-cert-manager-tls",
+        "dnsNames": [
+          "delivery-postgres.secure-delivery-test.svc",
+          "delivery-postgres.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "test-identity-cert-manager",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "secretName": "test-identity-cert-manager-tls",
+        "dnsNames": [
+          "test-identity.secure-delivery-test.svc",
+          "test-identity.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "name": "delivery-app-cert-manager",
+        "namespace": "secure-delivery-test",
+        "labels": {
+          "app.kubernetes.io/part-of": "secure-delivery-test"
+        }
+      },
+      "spec": {
+        "secretName": "delivery-app-cert-manager-tls",
+        "dnsNames": [
+          "delivery.secure-delivery-test.svc",
+          "delivery.secure-delivery-test.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "renewBefore": "720h",
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "size": 256,
+          "rotationPolicy": "Always"
+        },
+        "usages": [
+          "digital signature",
+          "server auth"
+        ],
+        "issuerRef": {
+          "name": "delivery-internal",
+          "kind": "Issuer"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,998 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+  name: secure-delivery-test
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: delivery
+  namespace: secure-delivery-test
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: delivery-db
+  namespace: secure-delivery-test
+---
+apiVersion: v1
+data:
+  backup.sh: >
+    #!/usr/bin/env bash
+
+    set -euo pipefail
+
+    umask 077
+
+    cp /backup-secret/pgpass /tmp/pgpass
+
+    chmod 600 /tmp/pgpass
+
+    export PGPASSFILE=/tmp/pgpass
+
+    export PGSSLMODE=verify-full PGSSLROOTCERT=/trust/service-ca.crt
+
+    target="/backups/metadata-$(date -u +%Y%m%dT%H%M%SZ).dump"
+
+    trap 'rm -f /tmp/pgpass "${target}.partial"' EXIT
+
+    if ! pg_dump --host="${DATABASE_HOST:?}" --username=delivery_backup
+    --dbname=delivery --format=custom --file="${target}.partial" 2>/dev/null;
+    then echo 'Metadata backup failed.' >&2; exit 1; fi
+
+    pg_restore --list "${target}.partial" >/dev/null
+
+    mv "${target}.partial" "$target"
+
+    find /backups -type f -name 'metadata-*.dump' -mtime +29 -delete
+
+    echo 'Metadata backup completed and archive listing verified.'
+kind: ConfigMap
+metadata:
+  name: delivery-backup-script
+  namespace: secure-delivery-test
+---
+apiVersion: v1
+data:
+  APP_INTERNAL_HOST: delivery.secure-delivery-test.svc
+  APP_ORIGIN: https://delivery-secure-delivery-test.apps.acm.sharkbait.tech
+  AUDIT_RETENTION_DAYS: "90"
+  BRAND_NAME: Secure Delivery · deployment test
+  DATABASE_CA_FILE: /trust/service/service-ca.crt
+  DATABASE_HOST: delivery-postgres.secure-delivery-test.svc
+  DATABASE_NAME: delivery
+  DATABASE_PASSWORD_FILE: /secrets/database/password
+  DATABASE_USER: delivery
+  GRAPH_CLIENT_ID: ""
+  GRAPH_CLIENT_SECRET_FILE: /secrets/graph/client-secret
+  GRAPH_MAILBOX: ""
+  GRAPH_TENANT_ID: ""
+  LINK_EMAIL_ENABLED: "false"
+  NODE_EXTRA_CA_CERTS: /trust/external/ca-bundle.pem
+  OIDC_CLIENT_ID: secure-delivery
+  OIDC_CLIENT_SECRET_FILE: /secrets/oidc/client-secret
+  OIDC_ISSUER: https://identity-secure-delivery-test.apps.acm.sharkbait.tech/realms/delivery-test
+  OIDC_REQUIRED_ROLE: repository-sender
+  OIDC_ROLE_CLIENT: secure-delivery
+  RETRIEVAL_ENABLED: "false"
+  S3_ACCESS_KEY_FILE: /secrets/s3/access-key
+  S3_BUCKET: secure-delivery-test-6758a344-3b14-4079-b38f-8b780b49037f
+  S3_ENDPOINT: https://rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc
+  S3_REGION: us-east-1
+  S3_SECRET_KEY_FILE: /secrets/s3/secret-key
+  S3_STORAGE_CLASS: ocs-storagecluster-ceph-rgw
+  SUPPORT_TEXT: Synthetic test deployment. Contact the test operator for access.
+  TLS_CERT_FILE: /tls/tls.crt
+  TLS_KEY_FILE: /tls/tls.key
+kind: ConfigMap
+metadata:
+  name: delivery-config
+  namespace: secure-delivery-test
+---
+apiVersion: v1
+data:
+  ca-bundle.pem: |
+    -----BEGIN CERTIFICATE-----
+    MIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE
+    Awwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe
+    Fw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z
+    aGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG
+    SIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw
+    Sp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP
+    FknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt
+    hHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW
+    c+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm
+    7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh
+    MA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw
+    lPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48
+    DjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/
+    bykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp
+    dp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK
+    vkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV
+    Ql5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H
+    bVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==
+    -----END CERTIFICATE-----
+kind: ConfigMap
+metadata:
+  name: delivery-external-ca
+  namespace: secure-delivery-test
+---
+apiVersion: v1
+data:
+  pg_hba.conf: |
+    local all all reject
+    hostnossl all all 0.0.0.0/0 reject
+    hostnossl all all ::/0 reject
+    hostssl delivery delivery 0.0.0.0/0 scram-sha-256
+    hostssl delivery delivery ::/0 scram-sha-256
+    hostssl delivery delivery_backup 0.0.0.0/0 scram-sha-256
+    hostssl delivery delivery_backup ::/0 scram-sha-256
+    hostssl all postgres 0.0.0.0/0 scram-sha-256
+    hostssl all postgres ::/0 scram-sha-256
+    hostssl keycloak keycloak 0.0.0.0/0 scram-sha-256
+    hostssl keycloak keycloak ::/0 scram-sha-256
+kind: ConfigMap
+metadata:
+  name: delivery-postgres-config
+  namespace: secure-delivery-test
+---
+apiVersion: v1
+data: {}
+kind: ConfigMap
+metadata:
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+  name: delivery-service-ca
+  namespace: secure-delivery-test
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: delivery-app-tls
+  labels:
+    app: delivery
+  name: delivery
+  namespace: secure-delivery-test
+spec:
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+  selector:
+    app: delivery
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: delivery-postgres-tls
+  name: delivery-postgres
+  namespace: secure-delivery-test
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: delivery-postgres
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: delivery-metadata-backups
+  namespace: secure-delivery-test
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: ocs-storagecluster-ceph-rbd
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery
+  namespace: secure-delivery-test
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: delivery
+  template:
+    metadata:
+      labels:
+        app: delivery
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - envFrom:
+            - configMapRef:
+                name: delivery-config
+          image: registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery@sha256:cbebc4265b947ad246ba70a1d7b8869ea63342a8726d3b3201832e6383043054
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - --import
+                - tsx
+                - scripts/admin.ts
+                - live
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 8
+          name: app
+          ports:
+            - containerPort: 8443
+              name: https
+          readinessProbe:
+            exec:
+              command:
+                - node
+                - --import
+                - tsx
+                - scripts/admin.ts
+                - health
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 8
+          resources:
+            limits:
+              cpu: "2"
+              memory: 768Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /secrets/database
+              name: database
+              readOnly: true
+            - mountPath: /secrets/oidc
+              name: oidc
+              readOnly: true
+            - mountPath: /secrets/s3
+              name: s3
+              readOnly: true
+            - mountPath: /secrets/graph
+              name: graph
+              readOnly: true
+            - mountPath: /tls
+              name: tls
+              readOnly: true
+            - mountPath: /trust/service
+              name: service-ca
+              readOnly: true
+            - mountPath: /trust/external
+              name: external-ca
+              readOnly: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: delivery
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+          name: tmp
+        - name: database
+          secret:
+            defaultMode: 288
+            secretName: delivery-database
+        - name: oidc
+          secret:
+            defaultMode: 288
+            secretName: delivery-oidc
+        - name: s3
+          secret:
+            defaultMode: 288
+            secretName: delivery-s3
+        - name: graph
+          secret:
+            defaultMode: 288
+            optional: true
+            secretName: delivery-graph
+        - name: tls
+          secret:
+            defaultMode: 288
+            secretName: delivery-app-tls
+        - configMap:
+            name: delivery-service-ca
+          name: service-ca
+        - configMap:
+            name: delivery-external-ca
+          name: external-ca
+      imagePullSecrets:
+        - name: test-registry-push
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: delivery-postgres
+  namespace: secure-delivery-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: delivery-postgres
+  serviceName: delivery-postgres
+  template:
+    metadata:
+      labels:
+        app: delivery-postgres
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_DB
+              value: delivery
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD_FILE
+              value: /admin-secret/password
+            - name: POSTGRES_INITDB_ARGS
+              value: --auth-host=scram-sha-256
+          image: registry-secure-delivery-test.apps.acm.sharkbait.tech/delivery-postgres@sha256:1cf5817ed0b926822924ee41ceac4c86e05fb49b40296a68168ace752d1b6a81
+          name: postgres
+          ports:
+            - containerPort: 5432
+              name: postgres
+          readinessProbe:
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            tcpSocket:
+              port: postgres
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - mountPath: /backup-secret
+              name: backup-secret
+              readOnly: true
+            - mountPath: /var/lib/postgresql/data
+              name: data
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /var/run/postgresql
+              name: socket
+            - mountPath: /tls
+              name: tls
+              readOnly: true
+            - mountPath: /config
+              name: config
+              readOnly: true
+            - mountPath: /admin-secret
+              name: admin-secret
+              readOnly: true
+            - mountPath: /app-secret
+              name: app-secret
+              readOnly: true
+            - name: identity-db-init
+              mountPath: /docker-entrypoint-initdb.d/20-test-identity.sh
+              subPath: 20-test-identity.sh
+              readOnly: true
+            - name: identity-secret
+              mountPath: /test-identity-secret
+              readOnly: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: delivery-db
+      terminationGracePeriodSeconds: 90
+      volumes:
+        - name: backup-secret
+          secret:
+            defaultMode: 288
+            secretName: delivery-backup
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+          name: tmp
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 16Mi
+          name: socket
+        - name: tls
+          secret:
+            defaultMode: 288
+            secretName: delivery-postgres-tls
+        - configMap:
+            name: delivery-postgres-config
+          name: config
+        - name: admin-secret
+          secret:
+            defaultMode: 288
+            secretName: delivery-postgres-admin
+        - name: app-secret
+          secret:
+            defaultMode: 288
+            secretName: delivery-database
+        - name: identity-db-init
+          configMap:
+            name: test-identity-db-init
+            defaultMode: 365
+        - name: identity-secret
+          secret:
+            secretName: test-identity-database
+            defaultMode: 288
+      imagePullSecrets:
+        - name: test-registry-push
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: ocs-storagecluster-ceph-rbd
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: delivery-metadata-backup
+  namespace: secure-delivery-test
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: delivery-backup
+        spec:
+          automountServiceAccountToken: false
+          containers:
+            - command:
+                - /bin/bash
+                - /scripts/backup.sh
+              env:
+                - name: DATABASE_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      key: DATABASE_HOST
+                      name: delivery-config
+              image: docker.io/library/postgres:18.6-bookworm@sha256:1c59e2c3c818eaa0f0628f695b36e7c9e362d6b219b36a54a32df645cbd7e1af
+              name: backup
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /backups
+                  name: backups
+                - mountPath: /tmp
+                  name: tmp
+                - mountPath: /backup-secret
+                  name: credentials
+                  readOnly: true
+                - mountPath: /trust
+                  name: ca
+                  readOnly: true
+                - mountPath: /scripts
+                  name: scripts
+                  readOnly: true
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: delivery-db
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: delivery-metadata-backups
+            - emptyDir:
+                medium: Memory
+                sizeLimit: 16Mi
+              name: tmp
+            - name: credentials
+              secret:
+                defaultMode: 288
+                secretName: delivery-backup
+            - configMap:
+                name: delivery-service-ca
+              name: ca
+            - configMap:
+                name: delivery-backup-script
+              name: scripts
+          imagePullSecrets:
+            - name: test-registry-push
+  schedule: 0 2 * * *
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  timeZone: Etc/UTC
+  suspend: true
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: delivery
+  namespace: secure-delivery-test
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: delivery
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: application-database
+  namespace: secure-delivery-test
+spec:
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: delivery
+        - podSelector:
+            matchLabels:
+              app: delivery-backup
+      ports:
+        - port: 5432
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: delivery-postgres
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: application-self-health
+  namespace: secure-delivery-test
+spec:
+  egress:
+    - ports:
+        - port: 8443
+          protocol: TCP
+      to:
+        - podSelector:
+            matchLabels:
+              app: delivery
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: delivery
+      ports:
+        - port: 8443
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: delivery
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: secure-delivery-test
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: required-internal-egress
+  namespace: secure-delivery-test
+spec:
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+    - ports:
+        - port: 5432
+          protocol: TCP
+      to:
+        - podSelector:
+            matchLabels:
+              app: delivery-postgres
+  podSelector: {}
+  policyTypes:
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: router-to-app
+  namespace: secure-delivery-test
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+      ports:
+        - port: 8443
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: delivery
+  policyTypes:
+    - Ingress
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    haproxy.router.openshift.io/rate-limit-connections: "true"
+    haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp: "30"
+    haproxy.router.openshift.io/timeout: 3600s
+  name: delivery
+  namespace: secure-delivery-test
+spec:
+  host: delivery-secure-delivery-test.apps.acm.sharkbait.tech
+  port:
+    targetPort: https
+  tls:
+    destinationCACertificate: |
+      -----BEGIN CERTIFICATE-----
+      MIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE
+      Awwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe
+      Fw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z
+      aGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG
+      SIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw
+      Sp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP
+      FknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt
+      hHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW
+      c+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm
+      7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh
+      MA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw
+      lPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48
+      DjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/
+      bykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp
+      dp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK
+      vkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV
+      Ql5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H
+      bVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==
+      -----END CERTIFICATE-----
+    insecureEdgeTerminationPolicy: Redirect
+    termination: reencrypt
+  to:
+    kind: Service
+    name: delivery
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: approved-external-https
+  namespace: secure-delivery-test
+spec:
+  podSelector:
+    matchLabels:
+      app: delivery
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 45.20.87.146/32
+        - ipBlock:
+            cidr: 10.0.1.21/32
+      ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: test-identity
+  namespace: secure-delivery-test
+  labels:
+    app.kubernetes.io/part-of: secure-delivery-test
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-identity
+  namespace: secure-delivery-test
+  labels:
+    app.kubernetes.io/part-of: secure-delivery-test
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: test-identity-tls
+spec:
+  selector:
+    app: test-identity
+  ports:
+    - name: https
+      port: 8443
+      targetPort: 8443
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: test-identity
+  namespace: secure-delivery-test
+  labels:
+    app.kubernetes.io/part-of: secure-delivery-test
+spec:
+  host: identity-secure-delivery-test.apps.acm.sharkbait.tech
+  to:
+    kind: Service
+    name: test-identity
+  port:
+    targetPort: https
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+    destinationCACertificate: |
+      -----BEGIN CERTIFICATE-----
+      MIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE
+      Awwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe
+      Fw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z
+      aGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG
+      SIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw
+      Sp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP
+      FknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt
+      hHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW
+      c+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm
+      7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh
+      MA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw
+      lPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48
+      DjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/
+      bykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp
+      dp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK
+      vkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV
+      Ql5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H
+      bVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==
+      -----END CERTIFICATE-----
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-identity
+  namespace: secure-delivery-test
+  labels:
+    app.kubernetes.io/part-of: secure-delivery-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-identity
+  template:
+    metadata:
+      labels:
+        app: test-identity
+    spec:
+      serviceAccountName: test-identity
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: prepare-runtime
+          image: registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623
+          command:
+            - /bin/bash
+            - -ec
+            - cp -R /opt/keycloak/. /work/
+          securityContext: &a1
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: runtime
+              mountPath: /work
+      containers:
+        - name: identity
+          image: registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623
+          command:
+            - /opt/keycloak/bin/kc.sh
+            - start
+            - --import-realm
+          securityContext: *a1
+          resources:
+            requests:
+              cpu: 500m
+              memory: 768Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          env:
+            - name: KC_HOSTNAME
+              value: https://identity-secure-delivery-test.apps.acm.sharkbait.tech
+            - name: KC_HOSTNAME_STRICT
+              value: "true"
+            - name: KC_HTTP_ENABLED
+              value: "false"
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            - name: KC_HTTPS_CERTIFICATE_FILE
+              value: /tls/tls.crt
+            - name: KC_HTTPS_CERTIFICATE_KEY_FILE
+              value: /tls/tls.key
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL
+              value: jdbc:postgresql://delivery-postgres.secure-delivery-test.svc:5432/keycloak?sslmode=verify-full&sslrootcert=/trust/service-ca.crt
+            - name: KC_DB_USERNAME
+              value: keycloak
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: test-identity-database
+                  key: password
+            - name: KC_LOG_LEVEL
+              value: warn
+          ports:
+            - containerPort: 8443
+              name: https
+          readinessProbe:
+            tcpSocket:
+              port: 8443
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          volumeMounts:
+            - name: runtime
+              mountPath: /opt/keycloak
+            - name: realm
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+            - name: tls
+              mountPath: /tls
+              readOnly: true
+            - name: trust
+              mountPath: /trust
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: runtime
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: realm
+          secret:
+            secretName: test-identity-realm
+            defaultMode: 288
+        - name: tls
+          secret:
+            secretName: test-identity-tls
+            defaultMode: 288
+        - name: trust
+          configMap:
+            name: delivery-service-ca
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 128Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: router-to-test-identity
+  namespace: secure-delivery-test
+  labels:
+    app.kubernetes.io/part-of: secure-delivery-test
+spec:
+  podSelector:
+    matchLabels:
+      app: test-identity
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+      ports:
+        - protocol: TCP
+          port: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-identity-to-database
+  namespace: secure-delivery-test
+  labels:
+    app.kubernetes.io/part-of: secure-delivery-test
+spec:
+  podSelector:
+    matchLabels:
+      app: delivery-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: test-identity
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: application-to-rgw
+  namespace: secure-delivery-test
+  labels:
+    app.kubernetes.io/part-of: secure-delivery-test
+spec:
+  podSelector:
+    matchLabels:
+      app: delivery
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-storage
+          podSelector:
+            matchLabels:
+              app: rook-ceph-rgw
+      ports:
+        - protocol: TCP
+          port: 443

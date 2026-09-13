@@ -1,0 +1,254 @@
+{
+  "checkedAt": "2026-09-13T11:23:43.670Z",
+  "namespace": "docs",
+  "publicTls": [
+    {
+      "hostname": "docs.apps.acm.sharkbait.tech",
+      "status": 200,
+      "verified": true,
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YR2"
+      },
+      "protocol": "TLSv1.3",
+      "expires": "Dec 12 10:13:54 2026 GMT"
+    },
+    {
+      "hostname": "identity-docs.apps.acm.sharkbait.tech",
+      "status": 200,
+      "verified": true,
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YR2"
+      },
+      "protocol": "TLSv1.3",
+      "expires": "Dec 12 10:13:54 2026 GMT"
+    },
+    {
+      "hostname": "registry-docs.apps.acm.sharkbait.tech",
+      "status": 401,
+      "verified": true,
+      "issuer": {
+        "C": "US",
+        "O": "Let's Encrypt",
+        "CN": "YR2"
+      },
+      "protocol": "TLSv1.3",
+      "expires": "Dec 12 10:13:54 2026 GMT"
+    }
+  ],
+  "certificates": [
+    {
+      "name": "docs-app-cert-manager",
+      "issuer": "docs-internal",
+      "ready": true,
+      "expires": "2026-12-12T11:10:48Z",
+      "renews": "2026-11-12T11:10:48Z"
+    },
+    {
+      "name": "docs-identity-cert-manager",
+      "issuer": "docs-internal",
+      "ready": true,
+      "expires": "2026-12-12T11:10:48Z",
+      "renews": "2026-11-12T11:10:48Z"
+    },
+    {
+      "name": "docs-internal-ca",
+      "issuer": "docs-bootstrap",
+      "ready": true,
+      "expires": "2036-09-10T11:10:44Z",
+      "renews": "2035-09-11T11:10:44Z"
+    },
+    {
+      "name": "docs-postgres-cert-manager",
+      "issuer": "docs-internal",
+      "ready": true,
+      "expires": "2026-12-12T11:10:46Z",
+      "renews": "2026-11-12T11:10:46Z"
+    },
+    {
+      "name": "docs-public",
+      "issuer": "letsencrypt-prod",
+      "ready": true,
+      "expires": "2026-12-12T10:13:54Z",
+      "renews": "2026-11-27T10:13:54Z"
+    },
+    {
+      "name": "docs-registry-cert-manager",
+      "issuer": "docs-internal",
+      "ready": true,
+      "expires": "2026-12-12T11:10:44Z",
+      "renews": "2026-11-12T11:10:44Z"
+    }
+  ],
+  "workloads": [
+    {
+      "name": "docs",
+      "ready": 2,
+      "desired": 2,
+      "image": "registry-docs.apps.acm.sharkbait.tech/docs@sha256:89be3aa6b9a0053d8fad010a9193ebbe8bdbfedc939efc3d770f4751925275cd"
+    },
+    {
+      "name": "docs-identity",
+      "ready": 1,
+      "desired": 1,
+      "image": "registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623"
+    },
+    {
+      "name": "docs-registry",
+      "ready": 1,
+      "desired": 1,
+      "image": "docker.io/library/registry:3@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33"
+    },
+    {
+      "name": "docs-postgres",
+      "ready": 1,
+      "desired": 1,
+      "image": "registry-docs.apps.acm.sharkbait.tech/docs-postgres@sha256:5988d6d35cf89aab00638c8ff585dcc1ad9b699a7911097db3cf84f77599a23c"
+    }
+  ],
+  "credentials": {
+    "senderPasswordsPreserved": true,
+    "reloadCannotReadSecrets": true
+  },
+  "configuration": {
+    "brandName": "Docs signed by Sharkbait",
+    "issuer": "https://identity-docs.apps.acm.sharkbait.tech/realms/docs",
+    "client": "docs",
+    "role": "repository-sender",
+    "emailEnabled": false,
+    "retrievalEnabled": true
+  },
+  "runtime": [
+    {
+      "name": "docs-6b956dcd9d-4kl5k",
+      "scc": "restricted-v2",
+      "ready": true,
+      "containers": [
+        {
+          "name": "app",
+          "runAsUser": 1001390000,
+          "readOnlyRoot": true,
+          "allowPrivilegeEscalation": false
+        }
+      ]
+    },
+    {
+      "name": "docs-6b956dcd9d-9q5nf",
+      "scc": "restricted-v2",
+      "ready": true,
+      "containers": [
+        {
+          "name": "app",
+          "runAsUser": 1001390000,
+          "readOnlyRoot": true,
+          "allowPrivilegeEscalation": false
+        }
+      ]
+    },
+    {
+      "name": "docs-identity-774b76d557-gjpvq",
+      "scc": "restricted-v2",
+      "ready": true,
+      "containers": [
+        {
+          "name": "identity",
+          "runAsUser": 1001390000,
+          "readOnlyRoot": true,
+          "allowPrivilegeEscalation": false
+        }
+      ]
+    },
+    {
+      "name": "docs-postgres-0",
+      "scc": "restricted-v2",
+      "ready": true,
+      "containers": [
+        {
+          "name": "postgres",
+          "runAsUser": 1001390000,
+          "readOnlyRoot": true,
+          "allowPrivilegeEscalation": false
+        }
+      ]
+    },
+    {
+      "name": "docs-registry-695696b768-tbg2k",
+      "scc": "restricted-v2",
+      "ready": true,
+      "containers": [
+        {
+          "name": "registry",
+          "runAsUser": 1001390000,
+          "readOnlyRoot": true,
+          "allowPrivilegeEscalation": false
+        }
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "name": "docs-backup-check-mtzq7bj5",
+      "succeeded": true,
+      "started": "2026-09-13T11:23:45Z",
+      "finished": "2026-09-13T11:23:52Z"
+    },
+    {
+      "name": "docs-certificate-check-mtzq47qt",
+      "succeeded": true,
+      "started": "2026-09-13T11:21:20Z",
+      "finished": "2026-09-13T11:23:01Z"
+    },
+    {
+      "name": "docs-certificate-reload-29821645",
+      "succeeded": true,
+      "started": "2026-09-13T11:25:00Z",
+      "finished": "2026-09-13T11:25:05Z"
+    },
+    {
+      "name": "docs-enable-retrieval-mtzq3lp0",
+      "succeeded": true,
+      "started": "2026-09-13T11:20:52Z",
+      "finished": "2026-09-13T11:20:57Z"
+    },
+    {
+      "name": "docs-migrate-mtzq1ve2",
+      "succeeded": true,
+      "started": "2026-09-13T11:19:31Z",
+      "finished": "2026-09-13T11:19:40Z"
+    },
+    {
+      "name": "docs-preflight-mtzq22sx",
+      "succeeded": true,
+      "started": "2026-09-13T11:19:41Z",
+      "finished": "2026-09-13T11:19:46Z"
+    }
+  ],
+  "builds": [
+    {
+      "name": "docs-1",
+      "phase": "Failed",
+      "reason": "FetchSourceFailed",
+      "durationSeconds": 2
+    },
+    {
+      "name": "docs-2",
+      "phase": "Complete",
+      "durationSeconds": 91
+    },
+    {
+      "name": "docs-postgres-1",
+      "phase": "Failed",
+      "reason": "FetchSourceFailed",
+      "durationSeconds": 2
+    },
+    {
+      "name": "docs-postgres-2",
+      "phase": "Complete",
+      "durationSeconds": 36
+    }
+  ],
+  "status": "passed"
+}

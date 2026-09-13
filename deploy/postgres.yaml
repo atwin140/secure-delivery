@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivery-postgres
+spec:
+  selector: { app: delivery-postgres }
+  ports: [{ name: postgres, port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: delivery-postgres }
+spec:
+  serviceName: delivery-postgres
+  replicas: 1
+  selector: { matchLabels: { app: delivery-postgres } }
+  template:
+    metadata: { labels: { app: delivery-postgres } }
+    spec:
+      serviceAccountName: delivery-db
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 90
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: postgres
+          image: REPLACE_POSTGRES_IMAGE_DIGEST
+          ports: [{ name: postgres, containerPort: 5432 }]
+          env:
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+            - { name: POSTGRES_DB, value: delivery }
+            - { name: POSTGRES_USER, value: postgres }
+            - { name: POSTGRES_PASSWORD_FILE, value: /admin-secret/password }
+            - { name: POSTGRES_INITDB_ARGS, value: "--auth-host=scram-sha-256" }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { cpu: "2", memory: 2Gi }
+          readinessProbe:
+            tcpSocket: { port: postgres }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - { name: backup-secret, mountPath: /backup-secret, readOnly: true }
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: tmp, mountPath: /tmp }
+            - { name: socket, mountPath: /var/run/postgresql }
+            - { name: tls, mountPath: /tls, readOnly: true }
+            - { name: config, mountPath: /config, readOnly: true }
+            - { name: admin-secret, mountPath: /admin-secret, readOnly: true }
+            - { name: app-secret, mountPath: /app-secret, readOnly: true }
+      volumes:
+        - {
+            name: backup-secret,
+            secret: { secretName: delivery-backup, defaultMode: 288 },
+          }
+        - { name: tmp, emptyDir: { medium: Memory, sizeLimit: 128Mi } }
+        - { name: socket, emptyDir: { medium: Memory, sizeLimit: 16Mi } }
+        - {
+            name: tls,
+            secret:
+              {
+                secretName: delivery-postgres-cert-manager-tls,
+                defaultMode: 288,
+              },
+          }
+        - { name: config, configMap: { name: delivery-postgres-config } }
+        - {
+            name: admin-secret,
+            secret: { secretName: delivery-postgres-admin, defaultMode: 288 },
+          }
+        - {
+            name: app-secret,
+            secret: { secretName: delivery-database, defaultMode: 288 },
+          }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: REPLACE_BLOCK_STORAGE_CLASS
+        resources: { requests: { storage: 10Gi } }

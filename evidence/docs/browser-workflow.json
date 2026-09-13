@@ -1,0 +1,35 @@
+{
+  "startedAt": "2026-09-13T11:23:38.355Z",
+  "browser": "153.0.8010.36",
+  "origin": "https://docs.apps.acm.sharkbait.tech",
+  "syntheticOutputAdapter": true,
+  "realKeycloakLogin": true,
+  "brandAndInputControls": true,
+  "requestCanariesAbsent": true,
+  "finalized": true,
+  "emailDisabled": true,
+  "fullVerificationBeforeOutput": true,
+  "capabilityAbsentFromRequestUrls": true,
+  "individualOutputMatches": true,
+  "zipOutputWritten": true,
+  "axeViolations": [
+    0,
+    0
+  ],
+  "crossOwnerDenied": true,
+  "missingRoleDenied": true,
+  "emailApiDenied": true,
+  "backupJob": "docs-backup-check-mtzq7bj5",
+  "restoreCandidateRepositoryId": "62a326ae8b2f3dc87290ba781afb16f3",
+  "metadataBackupWhileFinalized": true,
+  "revokedRetrievalDenied": true,
+  "pendingRetrievalDenied": true,
+  "responsiveWidths": [
+    390,
+    768,
+    1280,
+    1920
+  ],
+  "status": "passed",
+  "finishedAt": "2026-09-13T11:23:53.916Z"
+}

@@ -1,0 +1,18 @@
+{
+  "runDate": "2026-09-12",
+  "browser": "Chrome 153.0.8010.36 on macOS arm64",
+  "privateContextFullSize": {
+    "files": 100,
+    "plaintextBytes": 1073741824,
+    "result": "Rejected during OPFS encryption with storage quota exceeded; no finalized package or enabled outputs.",
+    "response": "Repeat the supported-limit test in a normal persistent profile. No crypto parameters were changed."
+  },
+  "nativePicker": {
+    "result": "Attempted but not verified",
+    "blocker": "The computer-use bridge selected the existing Chrome process and did not expose the isolated test browser's native Save dialog.",
+    "requiredAction": "Run scripts/native-picker-check.ts and complete the native Save dialogs in the isolated browser. Repeat full-size native output on supported deployment hardware."
+  },
+  "edge": "Not installed/tested",
+  "firefox": "Not tested; no compatibility claim",
+  "safari": "Not tested; no compatibility claim"
+}

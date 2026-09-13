@@ -1,0 +1,4 @@
+{
+  "appImage": "registry-docs.apps.acm.sharkbait.tech/docs@sha256:89be3aa6b9a0053d8fad010a9193ebbe8bdbfedc939efc3d770f4751925275cd",
+  "postgresImage": "registry-docs.apps.acm.sharkbait.tech/docs-postgres@sha256:5988d6d35cf89aab00638c8ff585dcc1ad9b699a7911097db3cf84f77599a23c"
+}

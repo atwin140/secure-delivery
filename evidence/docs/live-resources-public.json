@@ -1,0 +1,3104 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "2"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs",
+        "namespace": "docs"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 2,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "docs"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "55e946ec-9a46-4552-a1c3-b789fc40f8b4/1"
+            },
+            "labels": {
+              "app": "docs",
+              "app.kubernetes.io/part-of": "docs"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "envFrom": [
+                  {
+                    "configMapRef": {
+                      "name": "docs-config"
+                    }
+                  }
+                ],
+                "image": "registry-docs.apps.acm.sharkbait.tech/docs@sha256:89be3aa6b9a0053d8fad010a9193ebbe8bdbfedc939efc3d770f4751925275cd",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "node",
+                      "--import",
+                      "tsx",
+                      "scripts/admin.ts",
+                      "live"
+                    ]
+                  },
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 30,
+                  "periodSeconds": 30,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 8
+                },
+                "name": "app",
+                "ports": [
+                  {
+                    "containerPort": 8443,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "node",
+                      "--import",
+                      "tsx",
+                      "scripts/admin.ts",
+                      "health"
+                    ]
+                  },
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 10,
+                  "periodSeconds": 15,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 8
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "768Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  },
+                  {
+                    "mountPath": "/secrets/database",
+                    "name": "database",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/secrets/oidc",
+                    "name": "oidc",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/secrets/s3",
+                    "name": "s3",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/secrets/graph",
+                    "name": "graph",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/trust/service",
+                    "name": "service-ca",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/trust/external",
+                    "name": "external-ca",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "imagePullSecrets": [
+              {
+                "name": "docs-registry-push"
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "docs",
+            "serviceAccountName": "docs",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "64Mi"
+                },
+                "name": "tmp"
+              },
+              {
+                "name": "database",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-database"
+                }
+              },
+              {
+                "name": "oidc",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-oidc"
+                }
+              },
+              {
+                "name": "s3",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-s3"
+                }
+              },
+              {
+                "name": "graph",
+                "secret": {
+                  "defaultMode": 288,
+                  "optional": true,
+                  "secretName": "docs-graph"
+                }
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-app-cert-manager-tls"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "docs-internal-trust"
+                },
+                "name": "service-ca"
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "docs-external-ca"
+                },
+                "name": "external-ca"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "2"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-identity",
+        "namespace": "docs"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "docs-identity"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "ddeccc34-a445-4fe5-b2dc-4e5a25240eb8/1"
+            },
+            "labels": {
+              "app": "docs-identity",
+              "app.kubernetes.io/part-of": "docs"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "command": [
+                  "/opt/keycloak/bin/kc.sh",
+                  "start",
+                  "--import-realm"
+                ],
+                "env": [
+                  {
+                    "name": "KC_HOSTNAME",
+                    "value": "https://identity-docs.apps.acm.sharkbait.tech"
+                  },
+                  {
+                    "name": "KC_HOSTNAME_STRICT",
+                    "value": "true"
+                  },
+                  {
+                    "name": "KC_HTTP_ENABLED",
+                    "value": "false"
+                  },
+                  {
+                    "name": "KC_PROXY_HEADERS",
+                    "value": "xforwarded"
+                  },
+                  {
+                    "name": "KC_HTTPS_CERTIFICATE_FILE",
+                    "value": "/tls/tls.crt"
+                  },
+                  {
+                    "name": "KC_HTTPS_CERTIFICATE_KEY_FILE",
+                    "value": "/tls/tls.key"
+                  },
+                  {
+                    "name": "KC_DB",
+                    "value": "postgres"
+                  },
+                  {
+                    "name": "KC_DB_URL",
+                    "value": "jdbc:postgresql://docs-postgres.docs.svc:5432/keycloak?sslmode=verify-full&sslrootcert=/trust/service-ca.crt"
+                  },
+                  {
+                    "name": "KC_DB_USERNAME",
+                    "value": "keycloak"
+                  },
+                  {
+                    "name": "KC_DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "password",
+                        "name": "docs-identity-database"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KC_LOG_LEVEL",
+                    "value": "warn"
+                  }
+                ],
+                "image": "registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "identity",
+                "ports": [
+                  {
+                    "containerPort": 8443,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 5,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 8443
+                  },
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "500m",
+                    "memory": "768Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/opt/keycloak",
+                    "name": "runtime"
+                  },
+                  {
+                    "mountPath": "/opt/keycloak/data/import",
+                    "name": "realm",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/trust",
+                    "name": "trust",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "imagePullSecrets": [
+              {
+                "name": "docs-registry-push"
+              }
+            ],
+            "initContainers": [
+              {
+                "command": [
+                  "/bin/bash",
+                  "-ec",
+                  "cp -R /opt/keycloak/. /work/"
+                ],
+                "image": "registry.redhat.io/rhbk/keycloak-rhel9@sha256:52d3b0a986484ef8428d81b4db512f94741e89761fe47217dbc7529b5bcfa623",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "prepare-runtime",
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/work",
+                    "name": "runtime"
+                  }
+                ]
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "docs-identity",
+            "serviceAccountName": "docs-identity",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "emptyDir": {
+                  "sizeLimit": "1Gi"
+                },
+                "name": "runtime"
+              },
+              {
+                "name": "realm",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-identity-realm"
+                }
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-identity-cert-manager-tls"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "docs-internal-trust"
+                },
+                "name": "trust"
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "128Mi"
+                },
+                "name": "tmp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "annotations": {
+          "deployment.kubernetes.io/revision": "2"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-registry",
+        "namespace": "docs"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "docs-registry"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "ce009ab3-129a-4e50-8ad8-c1bfa6fd9a3a/1"
+            },
+            "labels": {
+              "app": "docs-registry",
+              "app.kubernetes.io/part-of": "docs"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "REGISTRY_HTTP_ADDR",
+                    "value": ":5000"
+                  },
+                  {
+                    "name": "REGISTRY_HTTP_TLS_CERTIFICATE",
+                    "value": "/tls/tls.crt"
+                  },
+                  {
+                    "name": "REGISTRY_HTTP_TLS_KEY",
+                    "value": "/tls/tls.key"
+                  },
+                  {
+                    "name": "REGISTRY_HTTP_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "key": "http-secret",
+                        "name": "docs-registry-auth"
+                      }
+                    }
+                  },
+                  {
+                    "name": "REGISTRY_AUTH",
+                    "value": "htpasswd"
+                  },
+                  {
+                    "name": "REGISTRY_AUTH_HTPASSWD_REALM",
+                    "value": "Docs private registry"
+                  },
+                  {
+                    "name": "REGISTRY_AUTH_HTPASSWD_PATH",
+                    "value": "/auth/htpasswd"
+                  },
+                  {
+                    "name": "REGISTRY_LOG_LEVEL",
+                    "value": "error"
+                  },
+                  {
+                    "name": "OTEL_TRACES_EXPORTER",
+                    "value": "none"
+                  }
+                ],
+                "image": "docker.io/library/registry:3@sha256:1be55279f18a2fe1a74edf2664cac61c1bea305b7b4642dab412e7affdcb3e33",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "registry",
+                "ports": [
+                  {
+                    "containerPort": 5000,
+                    "name": "https",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": 5000
+                  },
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/var/lib/registry",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/auth",
+                    "name": "auth",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "docs-registry",
+            "serviceAccountName": "docs-registry",
+            "terminationGracePeriodSeconds": 30,
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "docs-registry"
+                }
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-registry-cert-manager-tls"
+                }
+              },
+              {
+                "name": "auth",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-registry-auth"
+                }
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "32Mi"
+                },
+                "name": "tmp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "StatefulSet",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-postgres",
+        "namespace": "docs"
+      },
+      "spec": {
+        "persistentVolumeClaimRetentionPolicy": {
+          "whenDeleted": "Retain",
+          "whenScaled": "Retain"
+        },
+        "podManagementPolicy": "OrderedReady",
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "docs-postgres"
+          }
+        },
+        "serviceName": "docs-postgres",
+        "template": {
+          "metadata": {
+            "annotations": {
+              "delivery.example/certificate-revision": "04dca425-67fa-41b5-80c6-8ecf5eafd84e/1"
+            },
+            "labels": {
+              "app": "docs-postgres",
+              "app.kubernetes.io/part-of": "docs"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "containers": [
+              {
+                "env": [
+                  {
+                    "name": "PGDATA",
+                    "value": "/var/lib/postgresql/data/pgdata"
+                  },
+                  {
+                    "name": "POSTGRES_DB",
+                    "value": "delivery"
+                  },
+                  {
+                    "name": "POSTGRES_USER",
+                    "value": "postgres"
+                  },
+                  {
+                    "name": "POSTGRES_PASSWORD_FILE",
+                    "value": "/admin-secret/password"
+                  },
+                  {
+                    "name": "POSTGRES_INITDB_ARGS",
+                    "value": "--auth-host=scram-sha-256"
+                  }
+                ],
+                "image": "registry-docs.apps.acm.sharkbait.tech/docs-postgres@sha256:5988d6d35cf89aab00638c8ff585dcc1ad9b699a7911097db3cf84f77599a23c",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "postgres",
+                "ports": [
+                  {
+                    "containerPort": 5432,
+                    "name": "postgres",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "initialDelaySeconds": 15,
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "tcpSocket": {
+                    "port": "postgres"
+                  },
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "2Gi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/backup-secret",
+                    "name": "backup-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/var/lib/postgresql/data",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  },
+                  {
+                    "mountPath": "/var/run/postgresql",
+                    "name": "socket"
+                  },
+                  {
+                    "mountPath": "/tls",
+                    "name": "tls",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/config",
+                    "name": "config",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/admin-secret",
+                    "name": "admin-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/app-secret",
+                    "name": "app-secret",
+                    "readOnly": true
+                  },
+                  {
+                    "mountPath": "/docker-entrypoint-initdb.d/20-docs-identity.sh",
+                    "name": "identity-db-init",
+                    "readOnly": true,
+                    "subPath": "20-docs-identity.sh"
+                  },
+                  {
+                    "mountPath": "/docs-identity-secret",
+                    "name": "identity-secret",
+                    "readOnly": true
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "imagePullSecrets": [
+              {
+                "name": "docs-registry-push"
+              }
+            ],
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "serviceAccount": "docs-db",
+            "serviceAccountName": "docs-db",
+            "terminationGracePeriodSeconds": 90,
+            "volumes": [
+              {
+                "name": "backup-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-backup"
+                }
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "128Mi"
+                },
+                "name": "tmp"
+              },
+              {
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "16Mi"
+                },
+                "name": "socket"
+              },
+              {
+                "name": "tls",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-postgres-cert-manager-tls"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 420,
+                  "name": "docs-postgres-config"
+                },
+                "name": "config"
+              },
+              {
+                "name": "admin-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-postgres-admin"
+                }
+              },
+              {
+                "name": "app-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-database"
+                }
+              },
+              {
+                "configMap": {
+                  "defaultMode": 365,
+                  "name": "docs-identity-db-init"
+                },
+                "name": "identity-db-init"
+              },
+              {
+                "name": "identity-secret",
+                "secret": {
+                  "defaultMode": 288,
+                  "secretName": "docs-identity-database"
+                }
+              }
+            ]
+          }
+        },
+        "updateStrategy": {
+          "rollingUpdate": {
+            "partition": 0
+          },
+          "type": "RollingUpdate"
+        },
+        "volumeClaimTemplates": [
+          {
+            "apiVersion": "v1",
+            "kind": "PersistentVolumeClaim",
+            "metadata": {
+              "name": "data"
+            },
+            "spec": {
+              "accessModes": [
+                "ReadWriteOnce"
+              ],
+              "resources": {
+                "requests": {
+                  "storage": "10Gi"
+                }
+              },
+              "storageClassName": "ocs-storagecluster-ceph-rbd",
+              "volumeMode": "Filesystem"
+            },
+            "status": {
+              "phase": "Pending"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs",
+        "namespace": "docs"
+      },
+      "spec": {
+        "clusterIP": "172.30.225.4",
+        "clusterIPs": [
+          "172.30.225.4"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "https",
+            "port": 8443,
+            "protocol": "TCP",
+            "targetPort": "https"
+          }
+        ],
+        "selector": {
+          "app": "docs"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-identity",
+        "namespace": "docs"
+      },
+      "spec": {
+        "clusterIP": "172.30.149.198",
+        "clusterIPs": [
+          "172.30.149.198"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "https",
+            "port": 8443,
+            "protocol": "TCP",
+            "targetPort": 8443
+          }
+        ],
+        "selector": {
+          "app": "docs-identity"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-postgres",
+        "namespace": "docs"
+      },
+      "spec": {
+        "clusterIP": "172.30.187.208",
+        "clusterIPs": [
+          "172.30.187.208"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "postgres",
+            "port": 5432,
+            "protocol": "TCP",
+            "targetPort": 5432
+          }
+        ],
+        "selector": {
+          "app": "docs-postgres"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-registry",
+        "namespace": "docs"
+      },
+      "spec": {
+        "clusterIP": "172.30.181.5",
+        "clusterIPs": [
+          "172.30.181.5"
+        ],
+        "internalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "ports": [
+          {
+            "name": "https",
+            "port": 5000,
+            "protocol": "TCP",
+            "targetPort": 5000
+          }
+        ],
+        "selector": {
+          "app": "docs-registry"
+        },
+        "sessionAffinity": "None",
+        "type": "ClusterIP"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-1-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-1-build",
+            "uid": "692d79cb-569a-4bfe-a6b8-243824ca0a8a"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-1-global-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-1-build",
+            "uid": "692d79cb-569a-4bfe-a6b8-243824ca0a8a"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-1-sys-config",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-1-build",
+            "uid": "692d79cb-569a-4bfe-a6b8-243824ca0a8a"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-2-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-2-build",
+            "uid": "2bf518a5-2fca-4b70-a7cd-b4d4c45f7a72"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-2-global-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-2-build",
+            "uid": "2bf518a5-2fca-4b70-a7cd-b4d4c45f7a72"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-2-sys-config",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-2-build",
+            "uid": "2bf518a5-2fca-4b70-a7cd-b4d4c45f7a72"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "backup.sh": "#!/usr/bin/env bash\nset -euo pipefail\numask 077\ncp /backup-secret/pgpass /tmp/pgpass\nchmod 600 /tmp/pgpass\nexport PGPASSFILE=/tmp/pgpass\nexport PGSSLMODE=verify-full PGSSLROOTCERT=/trust/service-ca.crt\ntarget=\"/backups/metadata-$(date -u +%Y%m%dT%H%M%SZ).dump\"\ntrap 'rm -f /tmp/pgpass \"${target}.partial\"' EXIT\nif ! pg_dump --host=\"${DATABASE_HOST:?}\" --username=delivery_backup --dbname=delivery --format=custom --file=\"${target}.partial\" 2>/dev/null; then echo 'Metadata backup failed.' >&2; exit 1; fi\npg_restore --list \"${target}.partial\" >/dev/null\nmv \"${target}.partial\" \"$target\"\nfind /backups -type f -name 'metadata-*.dump' -mtime +29 -delete\necho 'Metadata backup completed and archive listing verified.'\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-backup-script",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "certificate-reload.mjs": "// Namespace-scoped renewal bridge. Reads public Certificate status, never TLS Secrets.\nimport { readFileSync } from \"node:fs\";\nimport { request } from \"node:https\";\nconst directory = \"/var/run/secrets/kubernetes.io/serviceaccount/\";\nconst namespace = readFileSync(directory + \"namespace\", \"utf8\").trim();\nconst targets = JSON.parse(readFileSync(\"/scripts/targets.json\", \"utf8\"));\nconst annotation = \"delivery.example/certificate-revision\";\nconst pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\nfunction api(path, method = \"GET\", body) {\n  return new Promise((resolve, reject) => {\n    const req = request(\n      {\n        hostname: \"kubernetes.default.svc\",\n        port: 443,\n        path,\n        method,\n        ca: readFileSync(directory + \"ca.crt\"),\n        rejectUnauthorized: true,\n        headers: {\n          Authorization:\n            \"Bearer \" + readFileSync(directory + \"token\", \"utf8\").trim(),\n          ...(body ? { \"Content-Type\": \"application/merge-patch+json\" } : {}),\n        },\n      },\n      (res) => {\n        let data = \"\";\n        res.on(\"data\", (chunk) => {\n          data += chunk;\n          if (data.length > 4 * 1024 * 1024)\n            req.destroy(new Error(\"API response too large\"));\n        });\n        res.on(\"end\", () => {\n          if (res.statusCode < 200 || res.statusCode >= 300)\n            return reject(new Error(\"Kubernetes API status \" + res.statusCode));\n          try {\n            resolve(JSON.parse(data));\n          } catch {\n            reject(new Error(\"Invalid Kubernetes API response\"));\n          }\n        });\n      },\n    );\n    req.setTimeout(20000, () =>\n      req.destroy(new Error(\"Kubernetes API timeout\")),\n    );\n    req.on(\"error\", () => reject(new Error(\"Kubernetes API request failed\")));\n    req.end(body ? JSON.stringify(body) : undefined);\n  });\n}\nfunction healthy(d) {\n  const desired = d.spec.replicas ?? 1,\n    s = d.status ?? {};\n  return (\n    s.observedGeneration >= d.metadata.generation &&\n    (s.readyReplicas ?? 0) === desired &&\n    (s.updatedReplicas ?? 0) === desired &&\n    (d.kind === \"StatefulSet\"\n      ? s.currentRevision === s.updateRevision\n      : (s.replicas ?? 0) === desired)\n  );\n}\ntry {\n  for (const t of targets) {\n    const certificate = await api(\n      `/apis/cert-manager.io/v1/namespaces/${namespace}/certificates/${t.certificate}`,\n    );\n    if (\n      !certificate.status?.conditions?.some(\n        (c) =>\n          c.type === \"Ready\" &&\n          c.status === \"True\" &&\n          c.observedGeneration === certificate.metadata.generation,\n      ) ||\n      !certificate.status.revision\n    )\n      throw Error(\"Certificate is not ready: \" + t.certificate);\n    const revision =\n      certificate.metadata.uid + \"/\" + certificate.status.revision;\n    const path = `/apis/apps/v1/namespaces/${namespace}/${t.kind}/${t.name}`;\n    let workload = await api(path);\n    // An intentionally stopped workload must remain stopped.\n    if (workload.spec.replicas === 0) {\n      console.log(t.name + \": suspended\");\n      continue;\n    }\n    const changed =\n      workload.spec.template.metadata.annotations?.[annotation] !== revision;\n    if (changed) {\n      await api(path, \"PATCH\", {\n        spec: {\n          template: { metadata: { annotations: { [annotation]: revision } } },\n        },\n      });\n      console.log(\n        t.name +\n          \": certificate revision \" +\n          certificate.status.revision +\n          \" rollout requested\",\n      );\n    }\n    const deadline = Date.now() + 300000;\n    do {\n      workload = await api(path);\n      if (healthy(workload)) break;\n      if (Date.now() > deadline) throw Error(\"Rollout timeout: \" + t.name);\n      await pause(5000);\n    } while (true);\n    console.log(t.name + \": ready\");\n  }\n} catch (error) {\n  // Messages above contain only operation names and status codes, never API response bodies.\n  console.error(\n    error instanceof Error ? error.message : \"Certificate reload failed\",\n  );\n  process.exitCode = 1;\n}\n",
+        "targets.json": "[{\"name\":\"docs-registry\",\"kind\":\"deployments\",\"certificate\":\"docs-registry-cert-manager\"},{\"name\":\"docs-postgres\",\"kind\":\"statefulsets\",\"certificate\":\"docs-postgres-cert-manager\"},{\"name\":\"docs-identity\",\"kind\":\"deployments\",\"certificate\":\"docs-identity-cert-manager\"},{\"name\":\"docs\",\"kind\":\"deployments\",\"certificate\":\"docs-app-cert-manager\"}]"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-certificate-reload",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "APP_INTERNAL_HOST": "docs.docs.svc",
+        "APP_ORIGIN": "https://docs.apps.acm.sharkbait.tech",
+        "AUDIT_RETENTION_DAYS": "90",
+        "BRAND_NAME": "Docs signed by Sharkbait",
+        "DATABASE_CA_FILE": "/trust/service/service-ca.crt",
+        "DATABASE_HOST": "docs-postgres.docs.svc",
+        "DATABASE_NAME": "delivery",
+        "DATABASE_PASSWORD_FILE": "/secrets/database/password",
+        "DATABASE_USER": "delivery",
+        "GRAPH_CLIENT_ID": "",
+        "GRAPH_CLIENT_SECRET_FILE": "/secrets/graph/client-secret",
+        "GRAPH_MAILBOX": "",
+        "GRAPH_TENANT_ID": "",
+        "LINK_EMAIL_ENABLED": "false",
+        "NODE_EXTRA_CA_CERTS": "/trust/external/ca-bundle.pem",
+        "OIDC_CLIENT_ID": "docs",
+        "OIDC_CLIENT_SECRET_FILE": "/secrets/oidc/client-secret",
+        "OIDC_ISSUER": "https://identity-docs.apps.acm.sharkbait.tech/realms/docs",
+        "OIDC_REQUIRED_ROLE": "repository-sender",
+        "OIDC_ROLE_CLIENT": "docs",
+        "RETRIEVAL_ENABLED": "true",
+        "S3_ACCESS_KEY_FILE": "/secrets/s3/access-key",
+        "S3_BUCKET": "docs-cb124486-ca8c-4110-bb0d-9df7e75626fd",
+        "S3_ENDPOINT": "https://rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc",
+        "S3_REGION": "us-east-1",
+        "S3_SECRET_KEY_FILE": "/secrets/s3/secret-key",
+        "S3_STORAGE_CLASS": "ocs-storagecluster-ceph-rgw",
+        "SUPPORT_TEXT": "Contact your Sharkbait administrator for account access, or your sender for delivery help.",
+        "TLS_CERT_FILE": "/tls/tls.crt",
+        "TLS_KEY_FILE": "/tls/tls.key"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-config",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "BUCKET_HOST": "rook-ceph-rgw-ocs-storagecluster-cephobjectstore.openshift-storage.svc",
+        "BUCKET_NAME": "docs-cb124486-ca8c-4110-bb0d-9df7e75626fd",
+        "BUCKET_PORT": "443",
+        "BUCKET_REGION": "",
+        "BUCKET_SUBREGION": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "finalizers": [
+          "objectbucket.io/finalizer"
+        ],
+        "labels": {
+          "bucket-provisioner": "openshift-storage.ceph.rook.io-bucket"
+        },
+        "name": "docs-documents",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "objectbucket.io/v1alpha1",
+            "blockOwnerDeletion": true,
+            "controller": true,
+            "kind": "ObjectBucketClaim",
+            "name": "docs-documents",
+            "uid": "b5f16caf-faef-4e5f-8f81-a1b1739faf91"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.pem": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-external-ca",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "20-docs-identity.sh": "#!/usr/bin/env bash\nset -euo pipefail\nexport TEST_IDENTITY_PASSWORD\nTEST_IDENTITY_PASSWORD=$(cat /docs-identity-secret/password)\nif ! psql -v ON_ERROR_STOP=1 --username \"$POSTGRES_USER\" --dbname \"$POSTGRES_DB\" >/dev/null 2>&1 <<'SQL'\n\\getenv identity_password TEST_IDENTITY_PASSWORD\nSELECT format('CREATE ROLE keycloak LOGIN PASSWORD %L', :'identity_password') \\gexec\nCREATE DATABASE keycloak OWNER keycloak;\nSQL\nthen echo 'Isolated identity database initialization failed.' >&2; exit 1; fi\nunset TEST_IDENTITY_PASSWORD\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-identity-db-init",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIByTCCAXCgAwIBAgIUbFxUd1fdb61jUCfvaU/SaslwiJkwCgYIKoZIzj0EAwIw\nQzESMBAGA1UEChMJU2hhcmtiYWl0MS0wKwYDVQQDEyREb2NzIHNpZ25lZCBieSBT\naGFya2JhaXQgSW50ZXJuYWwgQ0EwHhcNMjYwOTEzMTExMDQ0WhcNMzYwOTEwMTEx\nMDQ0WjBDMRIwEAYDVQQKEwlTaGFya2JhaXQxLTArBgNVBAMTJERvY3Mgc2lnbmVk\nIGJ5IFNoYXJrYmFpdCBJbnRlcm5hbCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEH\nA0IABMfKf6XPJC0TdcmcW23S9PgyqK3q3ouWPxuoY74TFmcW/DZk2KgT6EUBLy+Z\nX+iJuOYVzsMafAqNyTODjO7wT3ujQjBAMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMB\nAf8EBTADAQH/MB0GA1UdDgQWBBQ5Q8eJUNs0yOV1nZcbG/BPJaxxpDAKBggqhkjO\nPQQDAgNHADBEAiBdPvy30X8O6L/eywGR+74uSDXquFJ774ilKzSD9tlIFQIgbm6J\nvDaAP7eq7Ik6+YEfoiXjhQ8rRieBxj7CS5YU5cU=\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-internal-trust",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "openshift.io/description": "Configmap is added/updated with a data item containing the CA signing bundle that can be used to verify service-serving certificates",
+          "openshift.io/owning-component": "service-ca",
+          "service.beta.openshift.io/inject-cabundle": "true"
+        },
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-odf-ca",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-postgres-1-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-postgres-1-build",
+            "uid": "7a01323e-14d2-43f9-aec6-a50ee0095b8a"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-postgres-1-global-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-postgres-1-build",
+            "uid": "7a01323e-14d2-43f9-aec6-a50ee0095b8a"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-postgres-1-sys-config",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-postgres-1-build",
+            "uid": "7a01323e-14d2-43f9-aec6-a50ee0095b8a"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-postgres-2-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-postgres-2-build",
+            "uid": "e1d1b2ac-2fbb-4168-955b-c2cc24ac8938"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca-bundle.crt": ""
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-postgres-2-global-ca",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-postgres-2-build",
+            "uid": "e1d1b2ac-2fbb-4168-955b-c2cc24ac8938"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "docs-postgres-2-sys-config",
+        "namespace": "docs",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "name": "docs-postgres-2-build",
+            "uid": "e1d1b2ac-2fbb-4168-955b-c2cc24ac8938"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "pg_hba.conf": "local all all reject\nhostnossl all all 0.0.0.0/0 reject\nhostnossl all all ::/0 reject\nhostssl delivery delivery 0.0.0.0/0 scram-sha-256\nhostssl delivery delivery ::/0 scram-sha-256\nhostssl delivery delivery_backup 0.0.0.0/0 scram-sha-256\nhostssl delivery delivery_backup ::/0 scram-sha-256\nhostssl all postgres 0.0.0.0/0 scram-sha-256\nhostssl all postgres ::/0 scram-sha-256\nhostssl keycloak keycloak 0.0.0.0/0 scram-sha-256\nhostssl keycloak keycloak ::/0 scram-sha-256\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-postgres-config",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDMjCCAhqgAwIBAgIIMcS4QleFa6wwDQYJKoZIhvcNAQELBQAwNzESMBAGA1UE\nCxMJb3BlbnNoaWZ0MSEwHwYDVQQDExhrdWJlLWFwaXNlcnZlci1sYi1zaWduZXIw\nHhcNMjYwODIyMTcyODQyWhcNMzYwODE5MTcyODQyWjA3MRIwEAYDVQQLEwlvcGVu\nc2hpZnQxITAfBgNVBAMTGGt1YmUtYXBpc2VydmVyLWxiLXNpZ25lcjCCASIwDQYJ\nKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJmSoxB5QUTrEQ2cz43gEbT2Um2wAY2K\n3iDX0/ffQolPWbon2itEHr/+txFpHR/JxsTQd0byC6LsvvUndrdSxYcO5HaNSHUy\n/KHLdM3YVJDabuiblRdbTMiiADT7QVc4Pu+QEwVHMbo+q7shrg9rLvr+TJvtZUZP\ne6x1bvSVMKUFwo/uEy3FZ/8o5f6h1vcsq4Ho+E/oV6UnhU9OkNjQxiamqGxZIluk\ncCTPjea68yGwUreIwZ4T9v0h/XdiEH3qmt6z3U6YAxaAmxI5K2xt6j9STtDZOyfU\n5F/4Sr8EFlUXuJh3GxTtOCoN4yWMGFYnEkft4xld4h8AqimWJ4D0eecCAwEAAaNC\nMEAwDgYDVR0PAQH/BAQDAgKkMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFAw4\nJumzcfEZiIHwXK1n99xtmp62MA0GCSqGSIb3DQEBCwUAA4IBAQAI5/KJfHIlynz9\nli7oDl1CLy5O1A/7RGIWBhzeaeNqE0xWQYVHM96phC0D1fmLVKVNSgj78S36cm+r\nAHgbHQuyVNF1OhnYoGhzG3DdJ4ZgygdywuDyvL/sHkaQvuP21ZV2vBFT5R0mdBM2\nSeToWVvG0ACl8c4fzbXkLXbC0c+OUm0QRsmKwE+zbuN6440sibMIk0hHq1ebv9kp\nP1ThSpLRKc+cAd3jOA7H2z1rRhKZ9SKm/e4pFDqyC2TlgH3MyzrNQjqPaNZFM4I+\nR6La96jQmaLMwvv0zEzUwkxOwzouKM+W5Ts3TlHdDyn/3v913LIzu/n6xW0lv63e\nwMTzK8CM\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIDQDCCAiigAwIBAgIISv1X54Z0Wm8wDQYJKoZIhvcNAQELBQAwPjESMBAGA1UE\nCxMJb3BlbnNoaWZ0MSgwJgYDVQQDEx9rdWJlLWFwaXNlcnZlci1sb2NhbGhvc3Qt\nc2lnbmVyMB4XDTI2MDgyMjE3Mjg0MloXDTM2MDgxOTE3Mjg0MlowPjESMBAGA1UE\nCxMJb3BlbnNoaWZ0MSgwJgYDVQQDEx9rdWJlLWFwaXNlcnZlci1sb2NhbGhvc3Qt\nc2lnbmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv80NyEtNheSR\ngrPlW8pwzDYDZmCrFe65HhKbbIwRDMq2BD2V/tVJWW75+S+UWc6ag8e8zC6PwX+n\n3l6iW8+XbR+3yfBAl67UQ9T6BACTftqrlpfjQSOO97zuXnZmQRyuerb7Gw8zdR60\npJbcRQadfxiRbyJZAmCPmdxGwXgKr4b9zHcLpPTpV+ANh4P3OS8o141QrpEahXvC\nTp9kyCLiRfqIbi7t8IG4DDfxC3pP08ij5oXi563GDztB3e6HjfPRfGKl4FogOuvW\n1Gsva8Cy7sWPwFxWDbEPvvwQjDfV6e7EzRMPGocsxc747hR7JUdIfsNKTGil8uCy\n0Vw13NzyywIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/BAUwAwEB\n/zAdBgNVHQ4EFgQUsOsPCrRRqfv5fsJTgfETBXw4QvswDQYJKoZIhvcNAQELBQAD\nggEBAFa7Cdsq6es+QhSnnyIkINRmf5pBPiMgGchsVuNRJsgQxre6BSxkI0Szif2h\nJ5OLoioeSi5KPUtq+P/XxxFb9pCgWeEhs7uxqWcuBazzB9JOn33djvkRcfPi0X0e\nCqJtlHAVbIBJrKmw/MoKmfwXrHVjhCa/qu0FhskLbEjW5eRKtsOTgXt6WB2BJcS0\nXgKotc2hYVqG2n+CqSZgy2nk8c0jL1rVrhMX2Qmqf1yCEXAvKWE45I5G2xeHGgTj\njx5YO+gHs2RCTqPqjaxgISHdLRwybe+FAX9k2U2EORxVdZENdPjH8DsxRSHcdWQ2\nx4cTm4Glr4An7cRNnh+hi9YjkCY=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIDTDCCAjSgAwIBAgIIB8/8mZdhPDQwDQYJKoZIhvcNAQELBQAwRDESMBAGA1UE\nCxMJb3BlbnNoaWZ0MS4wLAYDVQQDEyVrdWJlLWFwaXNlcnZlci1zZXJ2aWNlLW5l\ndHdvcmstc2lnbmVyMB4XDTI2MDgyMjE3Mjg0MloXDTM2MDgxOTE3Mjg0MlowRDES\nMBAGA1UECxMJb3BlbnNoaWZ0MS4wLAYDVQQDEyVrdWJlLWFwaXNlcnZlci1zZXJ2\naWNlLW5ldHdvcmstc2lnbmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC\nAQEAovY+1DlCuLv9I6i7YbljG47EWcE0D6xm2msyWToZc/ADWFqPKrXy7NXDEV7i\nbdZX70ZnXAWqYor552Mb9i2W/QxsW43z2eCXiBLpeZjl3fB+uGWZqn/MwxVH0EzY\nJtdUI1qrPCka4BS+RdbzPMBNtByJP5v2HkTeJehVT3REPYc8GJn6pHzxTzl0PGBm\nCnu6QTtfFSBgluEz7+rFQTq11KmdW1Io84/ZEyqU8vKPWiHNi7EHiKRO1aGbkzf6\nRimKjpSgAFcqc5YtWBOJCJgMa4gQPPK58L/T2WILYJS3a9DMQYGwPiMukHXiKjoM\nlUVUV0lKV+n9BzgBh2J0UzUdUQIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAqQwDwYD\nVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUs4YzUknUbKLNqhWgiw/SQIjUv3owDQYJ\nKoZIhvcNAQELBQADggEBAKA2tx3tRSG1uepMtaDFHp7sUjKGEzBDgEtOv+S1qJmE\nb7OtNMDw++Oj/sJIb+xtpd20nsd/NXjFTV4fuW3se5qSQ6U650W0h+/xafrP3alP\nJD47/kNt2VRjWR8vpkFrSiXWr37T4XSmrupvTbzmh5/aILMC9emBnxGsTyEH6eT7\nh58ue61VxSkdth/N7b+CMU90lJ3lF4z7XmYmehexgeIylGzuJ56nm40f4Wk7nh/o\nbd10HcEVNVNMAjgnRMZ4Oz0mt5lHEWTycjtAipGfarkzNnVJA7VUJ22OFz+xrAyn\nU/Fr8GgYT3UuDmSW3GV2xTpm0QLDbmewsh5tJJZHH6w=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIDlzCCAn+gAwIBAgIIGW4jO1lDmC4wDQYJKoZIhvcNAQELBQAwWTFXMFUGA1UE\nAwxOb3BlbnNoaWZ0LWt1YmUtYXBpc2VydmVyLW9wZXJhdG9yX2xvY2FsaG9zdC1y\nZWNvdmVyeS1zZXJ2aW5nLXNpZ25lckAxNzg3NDIwMzA0MB4XDTI2MDgyMjE3Mzgy\nM1oXDTM2MDgxOTE3MzgyNFowWTFXMFUGA1UEAwxOb3BlbnNoaWZ0LWt1YmUtYXBp\nc2VydmVyLW9wZXJhdG9yX2xvY2FsaG9zdC1yZWNvdmVyeS1zZXJ2aW5nLXNpZ25l\nckAxNzg3NDIwMzA0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2Iaj\nTStwDDD6cJeMKxJUBr58xQg6XX85M2Mt8gA7KdVpbaw0ArIRkb5NnON7mvHiKAzy\nht7v0KseTeaQ3rvc6BoUEb+zgIlaN+/Yz12jQ0ZAK19G9zBF8vo9QPRH4SxC8sLG\nYQ39lqLr0baFrLsVL6fVVfCoNwXD25NFNcZrYJ33oouuqvD3U+4iM5MTvqeHzprH\nFK4DiVM+5y4hR4X2CRwqGu2Kau06hINOLBnSVnpTmOajIFzTKphiG+XFEWk2Nqa1\nkVe4BCqmRAAan/LmYtGtpTjIGb7ZZANriNKNmZ+2mL1vyuRmMbAbH97pOwo9pobg\nuvIxRLG5yRPw+a9p8wIDAQABo2MwYTAOBgNVHQ8BAf8EBAMCAqQwDwYDVR0TAQH/\nBAUwAwEB/zAdBgNVHQ4EFgQUKwfxl4hHeAofKKPeDzPO3WXkKtkwHwYDVR0jBBgw\nFoAUKwfxl4hHeAofKKPeDzPO3WXkKtkwDQYJKoZIhvcNAQELBQADggEBAFQvX9Nq\nQpYvbKZA9MP76u1ZAazbeahmhHCdQSxTIiIrSrNooqy2iuEsHwu8ifNMFN8ACYFO\nGRHzEw2gANt+rf61KHFT9tBEpfu9lEcB7Hc3x/YAoziXB+kmC68VpsVpE4xkBxY9\nYajNxcy/zV9+0wzqnYf4q+vx30Fum3p0AxPZpoaEbdHztbAaGj1Dd5WVzMga/I8W\naxUTTEz4CPf3XKLJiAPAl/iLYFdA9Wwv1v5RpwaWZfGnnxVeXIDhXnWsS30Da0QT\naFR1jMVbPBXskqUb8+OkjYjo4YNPElHz+zwaRgUFoTUVRetfJxrwUvgLEV+e3oNi\nYitDgAdDcTcgUBU=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIFJjCCBA6gAwIBAgISBqeu4VFRo/I+G/1MQbEGvEHuMA0GCSqGSIb3DQEBCwUA\nMDMxCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQwwCgYDVQQD\nEwNZUjEwHhcNMjYwODIyMTgxMjU2WhcNMjYxMTIwMTgxMjU1WjAkMSIwIAYDVQQD\nDBkqLmFwcHMuYWNtLnNoYXJrYmFpdC50ZWNoMIIBIjANBgkqhkiG9w0BAQEFAAOC\nAQ8AMIIBCgKCAQEAoAg6WfqfZ8S4f0UcNg23VmclDsicnedDOIbmyCUUVrJ9Nnj/\ndYTNeeVtyTeWmXwvkPeR+8Sk8qdlSvcyhOp0UsWiyFpKGqXdazP32hfZcP3x3+HG\nLVZIYFwx5pV3fTfwQK3LM4XyGrWbQiK7WlIr9nj/7wXWV+Y6Bs3yaCoXOXgagO7P\nkessa99rRKJD9qHBP03xXC8nKosHGO+oOfQ1JwlCZ5rgiOAKfwzPRICe0VTwsdBM\nmNgG5Ode53EC8fI+WQlYzdBbGz2U1mttycCU5cesWBQdAdqY48ZBC9KAWPYmnBO3\n0Tex0n9w393VcbdifLLY+EH1wHtniyE2ZN+AzwIDAQABo4ICQTCCAj0wDgYDVR0P\nAQH/BAQDAgWgMBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwHQYD\nVR0OBBYEFJ4dBOfpjXpxnFc94l8LMuEcAoQkMB8GA1UdIwQYMBaAFB8vNb5GFILN\nQLGueSxVePr31Gj7MDMGCCsGAQUFBwEBBCcwJTAjBggrBgEFBQcwAoYXaHR0cDov\nL3lyMS5pLmxlbmNyLm9yZy8wPQYDVR0RBDYwNIIZKi5hcHBzLmFjbS5zaGFya2Jh\naXQudGVjaIIXYXBwcy5hY20uc2hhcmtiYWl0LnRlY2gwEwYDVR0gBAwwCjAIBgZn\ngQwBAgEwLwYDVR0fBCgwJjAkoCKgIIYeaHR0cDovL3lyMS5jLmxlbmNyLm9yZy8x\nMTEuY3JsMIIBDAYKKwYBBAHWeQIEAgSB/QSB+gD4AHcA1219ENGn9XfCx+lf1wC/\n+YLJM1pl4dCzAXMXwMjFaXcAAAGgKuKSoAAABAMASDBGAiEAneYRJS8bXhqFcngQ\nBG74K3W108yelhqTBIV+7dK0m0ICIQDlh/O4e/Cs3zHGvFSAX12nG6lfQj27MMmL\noToeSgldAwB9ABqLnWsP/r+BtHk5xtIxCobW0QLU8EbiGCyd419eJiXvAAABoCri\nlIcACAAABQA3dqvpBAMARjBEAiAxa193KffvDFZQ9yUUN+diqiHFaQO3coEhFeDh\nEg/MYwIgSCCKuFujtsNKF7oaoUXcN2VF0SzN/rJOGINUhAo704cwDQYJKoZIhvcN\nAQELBQADggEBAJ8WNgNejr51vhW141HLx/e0z6unDwrQ/oFADRu6Ls3rs/Alquru\nq4TR7iLtxvhh+6dTQl3DdwVqaUQI1IHiBg45q5MH0b7Zvp5R4bQ8mZyAi1D47eQ+\niA2rdmK73k0WCVGgziQlmJOms8uilBC0g7gQ1K0z/VeHKbIrSTV+CHOc536V+Naj\no1Noj/qf+GHS32eiXbB5YAb7QqIw6hPl99NpKyqjyDxq09Fj0xirPkQ+F5y5nys+\nXI4TuuHRVQrLk11brKHVt4cqts4mc9A0Gt2ilEDMdNbmpnYu4stXdUNPetNIkJTz\n7xXuxRPtkmZc9/YR9INdpye7P8WwvdAsvSk=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIE2zCCAsOgAwIBAgIRAKICU/FfJpHAXcHOE7m8yk4wDQYJKoZIhvcNAQELBQAw\nLjELMAkGA1UEBhMCVVMxDTALBgNVBAoTBElTUkcxEDAOBgNVBAMTB1Jvb3QgWVIw\nHhcNMjUwOTAzMDAwMDAwWhcNMjgwOTAyMjM1OTU5WjAzMQswCQYDVQQGEwJVUzEW\nMBQGA1UEChMNTGV0J3MgRW5jcnlwdDEMMAoGA1UEAxMDWVIxMIIBIjANBgkqhkiG\n9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoVi8X2xCYgMXvJxNPKp/oF13UMgmPABB07VC\nLNDtoXmt9luEZNJSBV10VyT1Pz6LD8Zq1d2gc43WNl1AdRrj4sEnazbOiz0nPpmG\nBp2hui49oZtDIY6wdKeZAi5BbNU20CH6RSBBMLSQ9cXrH8dxdv4PAJ45ssGML68U\nSE3BsjC2a6cAN9L5CgXVIQi5tfNiTPoFZZ3S0OlXqLmmtdV95udWAb5b6e/F49Di\nCsH0Y00Ag72BVIb1hzynmKe+X0mERBTtsb3BwmpV9ipeBjMLoR/D9cHxHQCWoi5l\nTmXwY015J5rGelz1nZjJuxc2kioaX29XJBnhMkP531rSdG5uMwIDAQABo4HuMIHr\nMA4GA1UdDwEB/wQEAwIBhjATBgNVHSUEDDAKBggrBgEFBQcDATASBgNVHRMBAf8E\nCDAGAQH/AgEAMB0GA1UdDgQWBBQfLzW+RhSCzUCxrnksVXj699Ro+zAfBgNVHSME\nGDAWgBTe51tg0CJtQCh9Pw0B/qS1UrRRlDAyBggrBgEFBQcBAQQmMCQwIgYIKwYB\nBQUHMAKGFmh0dHA6Ly95ci5pLmxlbmNyLm9yZy8wEwYDVR0gBAwwCjAIBgZngQwB\nAgEwJwYDVR0fBCAwHjAcoBqgGIYWaHR0cDovL3lyLmMubGVuY3Iub3JnLzANBgkq\nhkiG9w0BAQsFAAOCAgEA0+zvMq3kHig1ddTmmm+RibTr9/RpX7k4buanMMRqbV/y\nIvP82zAHN3mvaw+cASuVsdpd0ikjhr4hnhJQLQOzOp2ccKrsdGOAgo0vddeISFAq\nEWEV4lmUM3vFF796up+bSgmJ1u6RupDCMxDgF8M3eLvGuj6L0lu3zkQ0KuQLnKxL\ntB0oQqn1Idg5CuuGpMvQzk29Pa3D/qHurc0EIM9SxukQuJqq63lxsYyRQFU8yMBO\nhq1w5LbfaWNRrz1uklOfI/pYkAb2E2MTZrAMQkBIE2S8Jt1F8gRc96o/xOsrgvSk\na84AisX6xq1lz1Z7jGvrnXc4TMcjxZTjiTaihcYI1JIXZiLtEMSCa5l3cu8YWd6z\ndLRQlqRdclVjuQfNHawRJ6GWlkK0QJosivTKwdBw3KxEtzGo8yMHERbsy57gP1UX\nHOMcmZYQC0gtyR3SxfenIM/MxC3Ia2Ypab/kQ/CTnlIn2KQ5JUC6NYrGCbhFN9bp\n5lKJStEwCUnLpntcrXk5XVDCNv/5RyWpRThkGOV7GetKkQ0qAY8hCzWK6oqnAhDZ\ncjlYVdWfqOw3DIOX6EDNBgAqHarRVxyF9QZdOaXSyPJ0ueD2BYJEBgaCGQ8rAaU/\nQc123V5LTXDZW4CcsPBDyhy4v+c8hClAyw/IkJlfBqxB9D+/wvIMHgECZ4ptP6o=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIF9DCCA9ygAwIBAgIRAPJLbRf52a18scn+p4eCaZ8wDQYJKoZIhvcNAQELBQAw\nTzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh\ncmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMjYwNTEzMDAwMDAw\nWhcNMzIwOTAyMjM1OTU5WjAuMQswCQYDVQQGEwJVUzENMAsGA1UEChMESVNSRzEQ\nMA4GA1UEAxMHUm9vdCBZUjCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIB\nANvGJnN78CTJdWL3+eGfsLN5TrNBJs+VH9hRXqRbwxu9sGNiB0BD1fcOxbSUQCJI\nM1xE13Db+5Cw1w0s0EBYsvuIP/6joF0w8cuImbgR1OGgYbSQ4OpzI+DG8SGuTlcE\n873OCS+kh3srlo6vl43M5OJg4Aeo1sfHp6kTJDoIiFBNJAY+OKfX/FUvYKuhjT+n\no49lmqmupSBI5PkBQiqrEGtWU5uxU/cQWHGu8jSjFBznZqvbNPLMXMLFxCb3WTfr\nJBXXjqvWG+v4bjzxjjeAtOlU7qarRDvNOyAuQYLln904M+faKx8hnLCpJ15ZqaEg\ncNlY+9MMWcC5yvL2A2j3l9+2buggZX+dOE91zYmIdawTvSZuVvlbRrAlLxIB6pwM\nBjneXCjYQ8+3BCCjssbSNpZU3hTcBDdhfAlEDlYr6pEatnMdmDT5BqnKC92bd0Eh\nM1fbLHioLccLCuievT8ZkPhZrq7Mii7gNXAcUEAR8+lzYal+9zTg7C5DALyVOeG/\nCqfRAMn1KSHCR0NSA6P8tn/mGRlnCct5rtVCLnVySVpU6H1qGg3DgTOuskf8eahT\nMiYbI5ezPJmO5ertalskQ1utp74+eDy92PI4ftHKTbq9IWhH4YZKh3WnJEIt+oQv\nlYZbY8tpEroKrFB6PFGzrJIDRyts4HqvuH52RFj2zv/BAgMBAAGjgeswgegwDgYD\nVR0PAQH/BAQDAgEGMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1UdEwEB/wQFMAMB\nAf8wHQYDVR0OBBYEFN7nW2DQIm1AKH0/DQH+pLVStFGUMB8GA1UdIwQYMBaAFHm0\nWeZ7tuXkAXOACIjIGlj26ZtuMDIGCCsGAQUFBwEBBCYwJDAiBggrBgEFBQcwAoYW\naHR0cDovL3gxLmkubGVuY3Iub3JnLzATBgNVHSAEDDAKMAgGBmeBDAECATAnBgNV\nHR8EIDAeMBygGqAYhhZodHRwOi8veDEuYy5sZW5jci5vcmcvMA0GCSqGSIb3DQEB\nCwUAA4ICAQA8spSI95KKfn2W6GMmDpHBJSPaLbsS3W93cijJCRCYAc1fsJgL1FIL\n7C0C9ecPOdcwB2fi0Dk2p94j9iTJCxmt5CFSKLRWwnXT2MMSXexVxqoVB79BdWPx\nVXETkVme/qYSAuKVHh5Ps+5BixgmwS1JkjSAc+MfrUbNssVEEnH0aEiAh+rotXAV\nJSP/Ye7LJPEwD9DWG72vVWbhAcuOf5OLjz57Ctk7MgQHynZ7+PlHJtajroCaIbtC\nr6tcZZaAwUQm+jQyeWdV+2hv9deOYFmKeQyjjcSrN5Nadrw+L9DZJLbA1HqeNvLh\nBgqpP0fvJq2N6EtD574N6eMI7uMsJTnji2UDz9el5XLSv9fqJMuDQtYVb2oTNoKp\noUqhxPVC0aq4eG5MESaIdn8b5ZGSSeAJLMHXljEdlNza+ncfkviXk1POLnnFdvx8\n/gk6M374WbLWFXw8N141B/Rl/tINGfl1TxOIiqtiMYkL02RSGb1kq34BL9NPP27z\nRGMuHGnzS3hFIrRTfKxrzUZ9RzQWzEG3K6fJ3r2nqSltkeytis9DIBoFY9VmVyjL\nM71DMi+y1+TRSJVClEMwvA4yL++7q9XZx5r5wBRWB4kQTKH5qyoZnDw7iiuh1lID\nyDFx8r7i9vIJU5HS3moZLkYWAOilMaV9N56A9Bgb6dNcHkvg3NoaYA==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "kubernetes.io/description": "Contains a CA bundle that can be used to verify the kube-apiserver when using internal endpoints such as the internal service IP or kubernetes.default.svc. No other usage is guaranteed across distributions of Kubernetes clusters."
+        },
+        "name": "kube-root-ca.crt",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "data": {
+        "service-ca.crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIIZukGuvjfpB8wDQYJKoZIhvcNAQELBQAwNjE0MDIGA1UE\nAwwrb3BlbnNoaWZ0LXNlcnZpY2Utc2VydmluZy1zaWduZXJAMTc4NzQyMDMxNDAe\nFw0yNjA4MjIxNzM4MzNaFw0yODEwMjAxNzM4MzRaMDYxNDAyBgNVBAMMK29wZW5z\naGlmdC1zZXJ2aWNlLXNlcnZpbmctc2lnbmVyQDE3ODc0MjAzMTQwggEiMA0GCSqG\nSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCZCGeiBvJr5D1Hpp5cgzBcCw9WQ44VEWGw\nSp+7DWOiiAQcNdxYLRZKlb1WV8FSQVqaOvQHvjjghy0hwCXaMqTwolF9AOEJMrTP\nFknG4/puY0A5lVqjTW3njMqugHX4/r5lNosG/dgqu9N37fuLoTa1IEZDBqWErrSt\nhHN2Pbx7vthxKfuelJFPmsRzDsozeg6NT8S1KeZBhZCZz6p1+8WAorL+E480OJvW\nc+sZfcz5aRcnbuM95OM8ju4dO/eoEb1i4unb7wZn3DqZKjmaOvMT9eFjBzExcTNm\n7NCQDuVeFgpNG1UXwcj9uY227VkLaI2zEU0oClIDKUECOn09UzyvAgMBAAGjYzBh\nMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSbUnRw\nlPO38hJHZvcqA5dBgp48DjAfBgNVHSMEGDAWgBSbUnRwlPO38hJHZvcqA5dBgp48\nDjANBgkqhkiG9w0BAQsFAAOCAQEAcHMoO1Nel9us8OwOR3D9hDEjX1qxfdAnfWP/\nbykl7SNb29aPzQBQijhiHII/f/QMiwApP52F80BllSNR3wnc0geU6cz5niDiizSp\ndp7vcm7kTqKlFRE66nw2iUROY1dY7lQW+IdYhwb80WZTROkCHlLEDmT7d1d2M4TK\nvkQpzofPS4mhRxx7ZNRPYzd38QVG61aQoge7omufAXLMD60XjiKxeyulY8OM7hrV\nQl5gr0vdlxqRViv87uDLHY+6BCtsbV5SovCTCnRMlThNYmt83l9l68EwVm3wN92H\nbVxd8cDr+esKLO0jgpiCthhr7hOaIhDzNcSVK2WlR5RzXS2ySQ==\n-----END CERTIFICATE-----\n"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "annotations": {
+          "service.beta.openshift.io/inject-cabundle": "true"
+        },
+        "name": "openshift-service-ca.crt",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs",
+        "namespace": "docs"
+      },
+      "spec": {
+        "host": "docs.apps.acm.sharkbait.tech",
+        "port": {
+          "targetPort": "https"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nMIIByTCCAXCgAwIBAgIUbFxUd1fdb61jUCfvaU/SaslwiJkwCgYIKoZIzj0EAwIw\nQzESMBAGA1UEChMJU2hhcmtiYWl0MS0wKwYDVQQDEyREb2NzIHNpZ25lZCBieSBT\naGFya2JhaXQgSW50ZXJuYWwgQ0EwHhcNMjYwOTEzMTExMDQ0WhcNMzYwOTEwMTEx\nMDQ0WjBDMRIwEAYDVQQKEwlTaGFya2JhaXQxLTArBgNVBAMTJERvY3Mgc2lnbmVk\nIGJ5IFNoYXJrYmFpdCBJbnRlcm5hbCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEH\nA0IABMfKf6XPJC0TdcmcW23S9PgyqK3q3ouWPxuoY74TFmcW/DZk2KgT6EUBLy+Z\nX+iJuOYVzsMafAqNyTODjO7wT3ujQjBAMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMB\nAf8EBTADAQH/MB0GA1UdDgQWBBQ5Q8eJUNs0yOV1nZcbG/BPJaxxpDAKBggqhkjO\nPQQDAgNHADBEAiBdPvy30X8O6L/eywGR+74uSDXquFJ774ilKzSD9tlIFQIgbm6J\nvDaAP7eq7Ik6+YEfoiXjhQ8rRieBxj7CS5YU5cU=\n-----END CERTIFICATE-----\n",
+          "externalCertificate": {
+            "name": "docs-public-tls"
+          },
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "docs",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-identity",
+        "namespace": "docs"
+      },
+      "spec": {
+        "host": "identity-docs.apps.acm.sharkbait.tech",
+        "port": {
+          "targetPort": "https"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nMIIByTCCAXCgAwIBAgIUbFxUd1fdb61jUCfvaU/SaslwiJkwCgYIKoZIzj0EAwIw\nQzESMBAGA1UEChMJU2hhcmtiYWl0MS0wKwYDVQQDEyREb2NzIHNpZ25lZCBieSBT\naGFya2JhaXQgSW50ZXJuYWwgQ0EwHhcNMjYwOTEzMTExMDQ0WhcNMzYwOTEwMTEx\nMDQ0WjBDMRIwEAYDVQQKEwlTaGFya2JhaXQxLTArBgNVBAMTJERvY3Mgc2lnbmVk\nIGJ5IFNoYXJrYmFpdCBJbnRlcm5hbCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEH\nA0IABMfKf6XPJC0TdcmcW23S9PgyqK3q3ouWPxuoY74TFmcW/DZk2KgT6EUBLy+Z\nX+iJuOYVzsMafAqNyTODjO7wT3ujQjBAMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMB\nAf8EBTADAQH/MB0GA1UdDgQWBBQ5Q8eJUNs0yOV1nZcbG/BPJaxxpDAKBggqhkjO\nPQQDAgNHADBEAiBdPvy30X8O6L/eywGR+74uSDXquFJ774ilKzSD9tlIFQIgbm6J\nvDaAP7eq7Ik6+YEfoiXjhQ8rRieBxj7CS5YU5cU=\n-----END CERTIFICATE-----\n",
+          "externalCertificate": {
+            "name": "docs-public-tls"
+          },
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "docs-identity",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      }
+    },
+    {
+      "apiVersion": "route.openshift.io/v1",
+      "kind": "Route",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-registry",
+        "namespace": "docs"
+      },
+      "spec": {
+        "host": "registry-docs.apps.acm.sharkbait.tech",
+        "port": {
+          "targetPort": "https"
+        },
+        "tls": {
+          "destinationCACertificate": "-----BEGIN CERTIFICATE-----\nMIIByTCCAXCgAwIBAgIUbFxUd1fdb61jUCfvaU/SaslwiJkwCgYIKoZIzj0EAwIw\nQzESMBAGA1UEChMJU2hhcmtiYWl0MS0wKwYDVQQDEyREb2NzIHNpZ25lZCBieSBT\naGFya2JhaXQgSW50ZXJuYWwgQ0EwHhcNMjYwOTEzMTExMDQ0WhcNMzYwOTEwMTEx\nMDQ0WjBDMRIwEAYDVQQKEwlTaGFya2JhaXQxLTArBgNVBAMTJERvY3Mgc2lnbmVk\nIGJ5IFNoYXJrYmFpdCBJbnRlcm5hbCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEH\nA0IABMfKf6XPJC0TdcmcW23S9PgyqK3q3ouWPxuoY74TFmcW/DZk2KgT6EUBLy+Z\nX+iJuOYVzsMafAqNyTODjO7wT3ujQjBAMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMB\nAf8EBTADAQH/MB0GA1UdDgQWBBQ5Q8eJUNs0yOV1nZcbG/BPJaxxpDAKBggqhkjO\nPQQDAgNHADBEAiBdPvy30X8O6L/eywGR+74uSDXquFJ774ilKzSD9tlIFQIgbm6J\nvDaAP7eq7Ik6+YEfoiXjhQ8rRieBxj7CS5YU5cU=\n-----END CERTIFICATE-----\n",
+          "externalCertificate": {
+            "name": "docs-public-tls"
+          },
+          "insecureEdgeTerminationPolicy": "Redirect",
+          "termination": "reencrypt"
+        },
+        "to": {
+          "kind": "Service",
+          "name": "docs-registry",
+          "weight": 100
+        },
+        "wildcardPolicy": "None"
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-certificate-reload",
+        "namespace": "docs"
+      },
+      "spec": {
+        "concurrencyPolicy": "Forbid",
+        "failedJobsHistoryLimit": 2,
+        "jobTemplate": {
+          "metadata": {},
+          "spec": {
+            "activeDeadlineSeconds": 1500,
+            "backoffLimit": 1,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "docs-certificate-reload"
+                }
+              },
+              "spec": {
+                "automountServiceAccountToken": true,
+                "containers": [
+                  {
+                    "command": [
+                      "node",
+                      "/scripts/certificate-reload.mjs"
+                    ],
+                    "image": "registry-docs.apps.acm.sharkbait.tech/docs@sha256:89be3aa6b9a0053d8fad010a9193ebbe8bdbfedc939efc3d770f4751925275cd",
+                    "imagePullPolicy": "IfNotPresent",
+                    "name": "reload",
+                    "resources": {
+                      "limits": {
+                        "cpu": "250m",
+                        "memory": "128Mi"
+                      },
+                      "requests": {
+                        "cpu": "25m",
+                        "memory": "64Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      },
+                      "readOnlyRootFilesystem": true
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "volumeMounts": [
+                      {
+                        "mountPath": "/scripts",
+                        "name": "scripts",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "imagePullSecrets": [
+                  {
+                    "name": "docs-registry-push"
+                  }
+                ],
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "serviceAccount": "docs-certificate-reload",
+                "serviceAccountName": "docs-certificate-reload",
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                  {
+                    "configMap": {
+                      "defaultMode": 420,
+                      "name": "docs-certificate-reload"
+                    },
+                    "name": "scripts"
+                  }
+                ]
+              }
+            },
+            "ttlSecondsAfterFinished": 86400
+          }
+        },
+        "schedule": "*/5 * * * *",
+        "startingDeadlineSeconds": 240,
+        "successfulJobsHistoryLimit": 1,
+        "suspend": false,
+        "timeZone": "Etc/UTC"
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "CronJob",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-metadata-backup",
+        "namespace": "docs"
+      },
+      "spec": {
+        "concurrencyPolicy": "Forbid",
+        "failedJobsHistoryLimit": 3,
+        "jobTemplate": {
+          "metadata": {},
+          "spec": {
+            "activeDeadlineSeconds": 3600,
+            "backoffLimit": 2,
+            "template": {
+              "metadata": {
+                "labels": {
+                  "app": "docs-backup"
+                }
+              },
+              "spec": {
+                "automountServiceAccountToken": false,
+                "containers": [
+                  {
+                    "command": [
+                      "/bin/bash",
+                      "/scripts/backup.sh"
+                    ],
+                    "env": [
+                      {
+                        "name": "DATABASE_HOST",
+                        "valueFrom": {
+                          "configMapKeyRef": {
+                            "key": "DATABASE_HOST",
+                            "name": "docs-config"
+                          }
+                        }
+                      }
+                    ],
+                    "image": "docker.io/library/postgres:18.6-bookworm@sha256:1c59e2c3c818eaa0f0628f695b36e7c9e362d6b219b36a54a32df645cbd7e1af",
+                    "imagePullPolicy": "IfNotPresent",
+                    "name": "backup",
+                    "resources": {
+                      "limits": {
+                        "cpu": "1",
+                        "memory": "512Mi"
+                      },
+                      "requests": {
+                        "cpu": "100m",
+                        "memory": "128Mi"
+                      }
+                    },
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      },
+                      "readOnlyRootFilesystem": true
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "volumeMounts": [
+                      {
+                        "mountPath": "/backups",
+                        "name": "backups"
+                      },
+                      {
+                        "mountPath": "/tmp",
+                        "name": "tmp"
+                      },
+                      {
+                        "mountPath": "/backup-secret",
+                        "name": "credentials",
+                        "readOnly": true
+                      },
+                      {
+                        "mountPath": "/trust",
+                        "name": "ca",
+                        "readOnly": true
+                      },
+                      {
+                        "mountPath": "/scripts",
+                        "name": "scripts",
+                        "readOnly": true
+                      }
+                    ]
+                  }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "imagePullSecrets": [
+                  {
+                    "name": "docs-registry-push"
+                  }
+                ],
+                "restartPolicy": "Never",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "serviceAccount": "docs-db",
+                "serviceAccountName": "docs-db",
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                  {
+                    "name": "backups",
+                    "persistentVolumeClaim": {
+                      "claimName": "docs-metadata-backups"
+                    }
+                  },
+                  {
+                    "emptyDir": {
+                      "medium": "Memory",
+                      "sizeLimit": "16Mi"
+                    },
+                    "name": "tmp"
+                  },
+                  {
+                    "name": "credentials",
+                    "secret": {
+                      "defaultMode": 288,
+                      "secretName": "docs-backup"
+                    }
+                  },
+                  {
+                    "configMap": {
+                      "defaultMode": 420,
+                      "name": "docs-internal-trust"
+                    },
+                    "name": "ca"
+                  },
+                  {
+                    "configMap": {
+                      "defaultMode": 420,
+                      "name": "docs-backup-script"
+                    },
+                    "name": "scripts"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "schedule": "0 2 * * *",
+        "startingDeadlineSeconds": 3600,
+        "successfulJobsHistoryLimit": 3,
+        "suspend": false,
+        "timeZone": "Etc/UTC"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-bootstrap",
+        "namespace": "docs"
+      },
+      "spec": {
+        "selfSigned": {}
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Issuer",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-internal",
+        "namespace": "docs"
+      },
+      "spec": {
+        "ca": {
+          "secretName": "docs-internal-ca"
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-app-cert-manager",
+        "namespace": "docs"
+      },
+      "spec": {
+        "dnsNames": [
+          "docs.docs.svc",
+          "docs.docs.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "docs-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "docs-app-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-identity-cert-manager",
+        "namespace": "docs"
+      },
+      "spec": {
+        "dnsNames": [
+          "docs-identity.docs.svc",
+          "docs-identity.docs.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "docs-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "docs-identity-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-internal-ca",
+        "namespace": "docs"
+      },
+      "spec": {
+        "commonName": "Docs signed by Sharkbait Internal CA",
+        "duration": "87600h",
+        "isCA": true,
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "docs-bootstrap"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Never",
+          "size": 256
+        },
+        "renewBefore": "8760h",
+        "secretName": "docs-internal-ca",
+        "subject": {
+          "organizations": [
+            "Sharkbait"
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-postgres-cert-manager",
+        "namespace": "docs"
+      },
+      "spec": {
+        "dnsNames": [
+          "docs-postgres.docs.svc",
+          "docs-postgres.docs.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "docs-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "docs-postgres-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-public",
+        "namespace": "docs"
+      },
+      "spec": {
+        "dnsNames": [
+          "docs.apps.acm.sharkbait.tech",
+          "identity-docs.apps.acm.sharkbait.tech",
+          "registry-docs.apps.acm.sharkbait.tech"
+        ],
+        "issuerRef": {
+          "kind": "ClusterIssuer",
+          "name": "letsencrypt-prod"
+        },
+        "privateKey": {
+          "algorithm": "RSA",
+          "rotationPolicy": "Always",
+          "size": 2048
+        },
+        "renewBefore": "360h",
+        "secretName": "docs-public-tls"
+      }
+    },
+    {
+      "apiVersion": "cert-manager.io/v1",
+      "kind": "Certificate",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-registry-cert-manager",
+        "namespace": "docs"
+      },
+      "spec": {
+        "dnsNames": [
+          "docs-registry.docs.svc",
+          "docs-registry.docs.svc.cluster.local"
+        ],
+        "duration": "2160h",
+        "issuerRef": {
+          "kind": "Issuer",
+          "name": "docs-internal"
+        },
+        "privateKey": {
+          "algorithm": "ECDSA",
+          "rotationPolicy": "Always",
+          "size": 256
+        },
+        "renewBefore": "720h",
+        "secretName": "docs-registry-cert-manager-tls",
+        "usages": [
+          "digital signature",
+          "server auth"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "application-database",
+        "namespace": "docs"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "docs"
+                  }
+                }
+              },
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "docs-backup"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs-postgres"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "application-self-health",
+        "namespace": "docs"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "docs"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "docs"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs"
+          }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "application-to-rgw",
+        "namespace": "docs"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "openshift-storage"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "rook-ceph-rgw"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs"
+          }
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "approved-external-https",
+        "namespace": "docs"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "ipBlock": {
+                  "cidr": "45.20.87.146/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.21/32"
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs"
+          }
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "default-deny",
+        "namespace": "docs"
+      },
+      "spec": {
+        "podSelector": {},
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-admin-egress",
+        "namespace": "docs"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "openshift-storage"
+                  }
+                },
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "rook-ceph-rgw"
+                  }
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.21/32"
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs-admin"
+          }
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-admin-to-database",
+        "namespace": "docs"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "docs-admin"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs-postgres"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-build-egress",
+        "namespace": "docs"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              },
+              {
+                "port": 6443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchExpressions": [
+            {
+              "key": "openshift.io/build.name",
+              "operator": "Exists"
+            }
+          ]
+        },
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-certificate-reload",
+        "namespace": "docs"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 443,
+                "protocol": "TCP"
+              },
+              {
+                "port": 6443,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "ipBlock": {
+                  "cidr": "172.30.0.1/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.141/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.142/32"
+                }
+              },
+              {
+                "ipBlock": {
+                  "cidr": "10.0.1.143/32"
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs-certificate-reload"
+          }
+        },
+        "policyTypes": [
+          "Ingress",
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-identity-to-database",
+        "namespace": "docs"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "docs-identity"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs-postgres"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "required-internal-egress",
+        "namespace": "docs"
+      },
+      "spec": {
+        "egress": [
+          {
+            "ports": [
+              {
+                "port": 53,
+                "protocol": "UDP"
+              },
+              {
+                "port": 53,
+                "protocol": "TCP"
+              },
+              {
+                "port": 5353,
+                "protocol": "UDP"
+              },
+              {
+                "port": 5353,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "kubernetes.io/metadata.name": "openshift-dns"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "ports": [
+              {
+                "port": 5432,
+                "protocol": "TCP"
+              }
+            ],
+            "to": [
+              {
+                "podSelector": {
+                  "matchLabels": {
+                    "app": "docs-postgres"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "podSelector": {},
+        "policyTypes": [
+          "Egress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "router-to-app",
+        "namespace": "docs"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "network.openshift.io/policy-group": "ingress"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "router-to-docs-identity",
+        "namespace": "docs"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "network.openshift.io/policy-group": "ingress"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 8443,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs-identity"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "networking.k8s.io/v1",
+      "kind": "NetworkPolicy",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "router-to-docs-registry",
+        "namespace": "docs"
+      },
+      "spec": {
+        "ingress": [
+          {
+            "from": [
+              {
+                "namespaceSelector": {
+                  "matchLabels": {
+                    "network.openshift.io/policy-group": "ingress"
+                  }
+                }
+              }
+            ],
+            "ports": [
+              {
+                "port": 5000,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ],
+        "podSelector": {
+          "matchLabels": {
+            "app": "docs-registry"
+          }
+        },
+        "policyTypes": [
+          "Ingress"
+        ]
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-certificate-reload",
+        "namespace": "docs"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "cert-manager.io"
+          ],
+          "resourceNames": [
+            "docs-registry-cert-manager",
+            "docs-postgres-cert-manager",
+            "docs-identity-cert-manager",
+            "docs-app-cert-manager"
+          ],
+          "resources": [
+            "certificates"
+          ],
+          "verbs": [
+            "get"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resourceNames": [
+            "docs-registry",
+            "docs-identity",
+            "docs"
+          ],
+          "resources": [
+            "deployments"
+          ],
+          "verbs": [
+            "get",
+            "patch"
+          ]
+        },
+        {
+          "apiGroups": [
+            "apps"
+          ],
+          "resourceNames": [
+            "docs-postgres"
+          ],
+          "resources": [
+            "statefulsets"
+          ],
+          "verbs": [
+            "get",
+            "patch"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-route-certificate",
+        "namespace": "docs"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resourceNames": [
+            "docs-public-tls"
+          ],
+          "resources": [
+            "secrets"
+          ],
+          "verbs": [
+            "get",
+            "list",
+            "watch"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-certificate-reload",
+        "namespace": "docs"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "docs-certificate-reload"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "docs-certificate-reload",
+          "namespace": "docs"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-route-certificate",
+        "namespace": "docs"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "docs-route-certificate"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "router",
+          "namespace": "openshift-ingress"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {
+          "openshift.io/description": "Allows deploymentconfigs in this namespace to rollout pods in this namespace.  It is auto-managed by a controller; remove subjects to disable."
+        },
+        "name": "system:deployers",
+        "namespace": "docs"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "system:deployer"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "deployer",
+          "namespace": "docs"
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "annotations": {
+          "openshift.io/description": "Allows builds in this namespace to push images to this namespace.  It is auto-managed by a controller; remove subjects to disable."
+        },
+        "name": "system:image-builders",
+        "namespace": "docs"
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "system:image-builder"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "builder",
+          "namespace": "docs"
+        }
+      ]
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "builder",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "default",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ServiceAccount",
+      "metadata": {
+        "name": "deployer",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "name": "docs-certificate-reload",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-db",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-identity",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "automountServiceAccountToken": false,
+      "kind": "ServiceAccount",
+      "metadata": {
+        "annotations": {},
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-registry",
+        "namespace": "docs"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app": "docs-postgres"
+        },
+        "name": "data-docs-postgres-0",
+        "namespace": "docs"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "10Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Filesystem",
+        "volumeName": "pvc-d7f15207-a265-4bfd-8b75-a3732c8c7aaa"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-metadata-backups",
+        "namespace": "docs"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "10Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Filesystem",
+        "volumeName": "pvc-86f2e1d1-6997-4e8f-91b2-3bdde1e0e627"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "annotations": {
+          "pv.kubernetes.io/bind-completed": "yes",
+          "pv.kubernetes.io/bound-by-controller": "yes",
+          "volume.beta.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com",
+          "volume.kubernetes.io/storage-provisioner": "openshift-storage.rbd.csi.ceph.com"
+        },
+        "finalizers": [
+          "kubernetes.io/pvc-protection"
+        ],
+        "labels": {
+          "app.kubernetes.io/part-of": "docs"
+        },
+        "name": "docs-registry",
+        "namespace": "docs"
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "10Gi"
+          }
+        },
+        "storageClassName": "ocs-storagecluster-ceph-rbd",
+        "volumeMode": "Filesystem",
+        "volumeName": "pvc-05b2b6ed-d181-4d0b-9e9d-654c2cc0b3b9"
+      }
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  }
+}

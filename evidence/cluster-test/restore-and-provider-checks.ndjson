@@ -1,0 +1,15 @@
+{"check":"restore_invalidation","passed":true,"retrievalDisabled":true,"sessions":0,"pendingTransactions":0,"notRevoked":0,"notDeleted":0,"candidateRevoked":true,"objectCount":0,"multipartCount":0,"databaseCanariesAbsent":true}
+{"check":"identity_dns","addresses":[{"address":"10.0.1.21","family":4}]}
+{"check":"database_tls","result":[{"ssl":true,"version":"TLSv1.3"}]}
+{"check":"identity_discovery","http":200,"issuerMatches":true}
+{"check":"GetBucketVersioningCommand","http":200,"fields":[],"replicationRoleSet":false}
+{"check":"GetObjectLockConfigurationCommand","error":{"name":"ObjectLockConfigurationNotFoundError","http":404}}
+{"check":"GetBucketReplicationCommand","http":200,"fields":["ReplicationConfiguration"],"replicationFields":["Role"],"replicationRoleSet":false}
+{"check":"GetBucketLifecycleConfigurationCommand","error":{"name":"NoSuchLifecycleConfiguration","http":404}}
+{"check":"ListObjectVersionsCommand","http":200,"fields":["IsTruncated","KeyMarker","VersionIdMarker","Name","Prefix","MaxKeys"],"replicationRoleSet":false}
+{"check":"GetBucketAclCommand","http":200,"fields":["Owner","Grants"],"replicationRoleSet":false,"publicAcl":false}
+{"check":"GetBucketPolicyStatusCommand","http":200,"fields":["PolicyStatus"],"replicationRoleSet":false,"isPublic":false}
+{"check":"ListMultipartUploadsCommand","http":200,"fields":["Bucket","MaxUploads","IsTruncated"],"replicationRoleSet":false}
+{"check":"synthetic_s3_roundtrip","matches":true}
+{"check":"anonymous_object_access","http":403,"denied":true}
+{"check":"synthetic_s3_delete","absent":true}

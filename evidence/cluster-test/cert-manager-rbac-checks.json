@@ -1,0 +1,17 @@
+[
+  {
+    "resource": "secret",
+    "name": "delivery-internal-ca",
+    "allowed": false
+  },
+  {
+    "resource": "secret",
+    "name": "delivery-database",
+    "allowed": false
+  },
+  {
+    "resource": "certificate",
+    "name": "delivery-app-cert-manager",
+    "allowed": true
+  }
+]

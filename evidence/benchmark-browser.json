@@ -1,0 +1,20 @@
+{
+  "browser": "153.0.8010.36",
+  "plaintextBytes": 1073741824,
+  "files": 100,
+  "largestIndividualBytes": 262144000,
+  "encryptUploadFinalizeMs": 9725.627166,
+  "retrieveVerifyMs": 8379.030625,
+  "unlock": [
+    {
+      "type": "benchmark",
+      "unlockMs": 103.10000002384186
+    }
+  ],
+  "individualOutputMs": 7462.223332999998,
+  "zipOutputMs": 14130.3115,
+  "zipBytes": 1073753446,
+  "peakChromeProcessTreeRssBytes": 1341980672,
+  "at": "2026-09-12T23:52:54.024Z",
+  "outputCaveat": "Synthetic OPFS output adapter exercises real browser worker/FileSystemWritableFileStream writes. Does not establish native picker or external filesystem output performance."
+}
