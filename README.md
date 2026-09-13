@@ -4,6 +4,8 @@ A browser-encrypted, single-tenant document delivery application for OpenShift. 
 
 **Resuming or moving this project to Git?** Start with [CONTEXT.md](CONTEXT.md), the copyable [restart prompt](RESTART-PROMPT.md), and the [Git/rebuild/recovery guide](docs/rebuild.md). Use this application directory as the repository root.
 
+**PII sharing and compliance:** Read the [security and compliance support brief](SECURITY-COMPLIANCE-BRIEF.md) for the email-attachment comparison, SOC 2/NIST mappings and DoD/CUI requirements that remain unproven.
+
 **Implemented and tested locally and in an isolated OpenShift deployment on ACM; production rollout has not been performed.** Read [completion status](docs/status.md) for measured checks and limitations. The application format is unreviewed, not an audited cryptosystem or a SOC 2 certification.
 
 ## Run locally

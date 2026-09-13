@@ -61,6 +61,8 @@ The earlier `secure-delivery-test` namespace remains separate. Its deliveries an
 
 The implementation uses TypeScript, React/Vite, a dedicated libsodium worker, Fastify BFF, PostgreSQL and private S3-compatible ODF storage. OIDC uses authorization code + PKCE S256 and server-side sessions; OAuth tokens stay out of browser JavaScript. Microsoft Graph link mail exists but is disabled in the current deployment.
 
+The root [security and compliance brief](SECURITY-COMPLIANCE-BRIEF.md) explains the PII/email comparison and selected SOC 2, NIST and DoD mappings. Preserve its distinction between implemented safeguards and assessed compliance; no SOC 2 attestation, FIPS validation or DoD authorization is established.
+
 ## Invariants to preserve
 
 - All document encryption/decryption and key wrapping occur in the browser. Documents, internal filenames/metadata, document keys, bundle passwords and portable key bundles must not reach server APIs or logs.
