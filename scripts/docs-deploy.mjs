@@ -3,12 +3,26 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { randomBytes, X509Certificate } from "node:crypto";
 import { certManagerResources } from "./cert-manager-resources.mjs";
+import { createDocsRealm, senderNames } from "./docs-realm.mjs";
 if (!process.env.KUBECONFIG) throw Error("Explicit KUBECONFIG required");
 const ns = "docs",
   host = "docs.apps.acm.sharkbait.tech",
   identityHost = "identity-docs.apps.acm.sharkbait.tech",
   registry = "registry-docs.apps.acm.sharkbait.tech";
 const mode = process.argv[2];
+const accountOption = process.argv[3];
+if (
+  process.argv.length > 4 ||
+  (accountOption &&
+    (mode !== "configure" ||
+      !/^--accounts-from=[a-z0-9.-]+\/[a-z0-9.-]+$/.test(accountOption)))
+)
+  throw Error(
+    "Use configure [--accounts-from=NAMESPACE/SECRET], bootstrap, or registry-route",
+  );
+const accountSource = accountOption
+  ?.slice("--accounts-from=".length)
+  .split("/");
 mkdirSync(".local/docs", { recursive: true });
 mkdirSync("evidence/docs", { recursive: true });
 const oc = (args, input) =>
@@ -196,15 +210,11 @@ try {
     apply([namespace]);
     secret("docs-registry-auth", () => {
       const password = random();
-      const htpasswd = execFileSync(
-        "/usr/sbin/htpasswd",
-        ["-Bni", "docs-registry"],
-        {
-          input: password + "\n",
-          encoding: "utf8",
-          stdio: ["pipe", "pipe", "pipe"],
-        },
-      );
+      const htpasswd = execFileSync("htpasswd", ["-Bni", "docs-registry"], {
+        input: password + "\n",
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
       secret(
         "docs-registry-push",
         () => ({
@@ -402,54 +412,20 @@ try {
     });
     const oidc = secret("docs-oidc", () => ({ "client-secret": random() }));
     const accounts = secret("docs-sender-accounts", () => {
-      const previous = get(
-        "secret",
-        "test-sender-accounts",
-        "secure-delivery-test",
-      );
+      const previous = accountSource
+        ? get("secret", accountSource[1], accountSource[0])
+        : undefined;
       return Object.fromEntries(
-        ["sender-a", "sender-b", "denied-user"].map((n) => [
-          n,
-          decode(previous, n),
-        ]),
+        senderNames.map((n) => [n, previous ? decode(previous, n) : random()]),
       );
     });
-    const realm = JSON.parse(
-      decode(
-        get("secret", "test-identity-realm", "secure-delivery-test"),
-        "delivery-test-realm.json",
+    const realm = createDocsRealm({
+      origin: `https://${host}`,
+      clientSecret: decode(oidc, "client-secret"),
+      passwords: Object.fromEntries(
+        senderNames.map((n) => [n, decode(accounts, n)]),
       ),
-    );
-    realm.realm = "docs";
-    realm.displayName = "Docs signed by Sharkbait";
-    realm.roles.client.docs = realm.roles.client["secure-delivery"];
-    delete realm.roles.client["secure-delivery"];
-    realm.clients[0].clientId = "docs";
-    realm.clients[0].name = "Docs signed by Sharkbait";
-    realm.clients[0].secret = decode(oidc, "client-secret");
-    realm.clients[0].redirectUris = [`https://${host}/auth/callback`];
-    realm.clients[0].webOrigins = [`https://${host}`];
-    for (const mapper of realm.clients[0].protocolMappers)
-      for (const [k, v] of Object.entries(mapper.config))
-        mapper.config[k] = v.replaceAll("secure-delivery", "docs");
-    realm.clientScopeMappings = {
-      docs: [{ client: "docs", roles: ["repository-sender"] }],
-    };
-    for (const u of realm.users) {
-      u.firstName = "Docs";
-      u.lastName = "Sender";
-      u.credentials = [
-        {
-          type: "password",
-          value: decode(accounts, u.username),
-          temporary: false,
-        },
-      ];
-      if (u.clientRoles?.["secure-delivery"]) {
-        u.clientRoles.docs = u.clientRoles["secure-delivery"];
-        delete u.clientRoles["secure-delivery"];
-      }
-    }
+    });
     secret("docs-identity-realm", () => ({
       "docs-realm.json": JSON.stringify(realm),
     }));
@@ -576,7 +552,7 @@ try {
       JSON.stringify({ appImage, postgresImage }, null, 2) + "\n",
     );
     console.log(
-      "Docs configured with fresh storage and credentials, docs realm, retained sender access, and retrieval disabled for preflight.",
+      "Docs configured with dedicated storage, docs realm and sender accounts; retrieval is disabled for preflight. Existing Docs account Secrets are preserved; otherwise passwords come from --accounts-from or are newly generated.",
     );
   } else throw Error("Use bootstrap, registry-route, or configure");
 } catch (error) {

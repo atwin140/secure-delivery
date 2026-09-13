@@ -36,7 +36,7 @@ Certificate reloads can briefly interrupt single-replica PostgreSQL, identity an
 
 ## Build and deployment scripts
 
-`scripts/docs-deploy.mjs` provides the initial `bootstrap`, `registry-route`, and `configure` stages. It uses checked-in public resource blueprints from the earlier deployment and imports the existing sender accounts only through Kubernetes Secrets in process memory. It refuses to run initial application configuration over an existing `docs` Deployment. Use targeted updates for later releases.
+`scripts/docs-deploy.mjs` provides the initial `bootstrap`, `registry-route`, and `configure` stages. It uses checked-in public resource blueprints from the earlier deployment and the standalone realm definition in `scripts/docs-realm.mjs`. Initial configuration preserves an existing `docs-sender-accounts` Secret; otherwise it imports credentials using explicit `--accounts-from=NAMESPACE/SECRET`, or generates new random passwords. It does not require the old namespace. Credentials remain in process memory and Kubernetes Secrets. It refuses to run initial application configuration over an existing `docs` Deployment. Use targeted updates for later releases. The [rebuild guide](rebuild.md) contains the full sequence and separate recovery procedure.
 
 Create portable build input with:
 
@@ -48,7 +48,7 @@ This packages only explicit source files. macOS extended archive attributes caus
 
 After initial configuration, run `scripts/docs-admin.mjs migrate` and `preflight`, wait for both Jobs to succeed, then invoke `scripts/docs-activate.mjs`. Activation enables retrieval, waits for two app replicas, exercises the certificate reload job, and enables the recurring backup and reload schedules. Administrative Jobs have a 24-hour TTL. These helpers deliberately target ACM/`docs`; they are not a general multi-cluster installer.
 
-Use `scripts/docs-browser.ts` for the synthetic real-browser workflow and `scripts/docs-verify.mjs` for read-only deployment/TLS checks. Browser evidence still uses a labeled synthetic output adapter; it does not establish native Save-dialog behavior.
+Use `scripts/docs-browser.ts` for the synthetic real-browser workflow and `scripts/docs-verify.mjs` for read-only deployment/TLS checks. Password comparison with a previous namespace is optional via `--compare-accounts=NAMESPACE/SECRET`. The browser workflow creates synthetic deliveries and a backup Job. Browser evidence still uses a labeled synthetic output adapter; it does not establish native Save-dialog behavior.
 
 ## Evidence
 

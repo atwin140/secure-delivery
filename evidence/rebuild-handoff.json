@@ -1,0 +1,66 @@
+{
+  "checkedAt": "2026-09-13T12:10:34.615590+00:00",
+  "purpose": "Git/restart handoff and standalone initial realm provisioning",
+  "status": "passed",
+  "checks": {
+    "productionBuild": {
+      "command": "npm run build",
+      "result": "passed; TypeScript and Vite"
+    },
+    "unitIntegration": {
+      "command": "npm test",
+      "passed": 50,
+      "failed": 0,
+      "files": 9,
+      "newRealmTests": 2,
+      "note": "Initial restricted run could not bind localhost; full rerun with local HTTPS servers permitted passed."
+    },
+    "scriptSyntax": [
+      "scripts/docs-deploy.mjs",
+      "scripts/docs-realm.mjs",
+      "scripts/docs-verify.mjs"
+    ],
+    "documentedShellBlocks": {
+      "count": 13,
+      "check": "bash -n",
+      "result": "passed"
+    },
+    "portableBuildArchive": {
+      "files": 29,
+      "format": "USTAR",
+      "runtimeFiles": 0,
+      "extendedHeaders": 0
+    },
+    "relativeHandoffLinks": "passed",
+    "gitCandidates": {
+      "runtimeDirectories": 0,
+      "privateKeyPemMarkers": 0,
+      "populatedKubernetesSecretsInJsonEvidence": 0,
+      "requiredPublicBlueprintIncluded": true,
+      "scope": "Filename exclusions, private-key block scan and structured JSON Secret-resource scan; not an exhaustive credential audit."
+    }
+  },
+  "notRun": [
+    "Fresh cluster provisioning with revised helper",
+    "Live deployment/TLS verification for this handoff",
+    "Browser suite for documentation/provisioning changes",
+    "Secret export or off-cluster identity/metadata backup"
+  ],
+  "liveDeploymentModified": false,
+  "gitCheckoutVerification": {
+    "checkedAt": "2026-09-13T12:14:55.046172+00:00",
+    "repository": "https://github.com/atwin140/secure-delivery",
+    "branch": "main",
+    "dependencyInstall": "npm ci --ignore-scripts; passed; 0 reported vulnerabilities",
+    "productionBuild": "npm run build; passed",
+    "unitIntegration": {
+      "passed": 50,
+      "failed": 0,
+      "files": 9
+    },
+    "portableBuildArchive": "generated successfully",
+    "handoffLinks": "passed",
+    "gitCandidateScan": "152 files; runtime files excluded; no private-key blocks or populated Secret resources in JSON evidence",
+    "liveDeploymentModified": false
+  }
+}

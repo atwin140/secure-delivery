@@ -4,6 +4,8 @@ The application, versioned protocol, server integrations, OpenShift/container de
 
 The requested redesign and clean namespace deployment are at [Docs signed by Sharkbait](https://docs.apps.acm.sharkbait.tech), namespace `docs`, realm `docs`. See [the current deployment guide](docs-deployment.md). The earlier cluster evidence below remains historical.
 
+The Git handoff adds [project context](../CONTEXT.md), a [restart prompt](../RESTART-PROMPT.md) and [rebuild/recovery instructions](rebuild.md). The realm bootstrap now comes from source without requiring the old namespace. The handoff passed the production build and 50 unit/integration tests, including two new realm checks; see [handoff verification](../evidence/rebuild-handoff.json). No live deployment was changed, and the revised fresh provisioning path has not been exercised in a new namespace.
+
 ## Executed successfully
 
 - Node 24.19.0 TypeScript check and production Vite build.

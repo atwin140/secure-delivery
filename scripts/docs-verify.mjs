@@ -1,10 +1,18 @@
 // Read-only public TLS, deployment and credential-isolation evidence for docs.
 import { execFileSync, spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { X509Certificate } from "node:crypto";
 import https from "node:https";
 import assert from "node:assert/strict";
 if (!process.env.KUBECONFIG) throw Error("Explicit KUBECONFIG required");
+const compareAccounts = process.argv[2];
+if (
+  process.argv.length > 3 ||
+  (compareAccounts &&
+    !/^--compare-accounts=[a-z0-9.-]+\/[a-z0-9.-]+$/.test(compareAccounts))
+)
+  throw Error("Use docs-verify.mjs [--compare-accounts=NAMESPACE/SECRET]");
+mkdirSync("evidence/docs", { recursive: true });
 const ns = "docs";
 const get = (kind, name, namespace = ns) =>
   JSON.parse(
@@ -77,12 +85,19 @@ for (const d of [...get("deployments").items, ...get("statefulsets").items]) {
     image: d.spec.template.spec.containers[0].image,
   });
 }
-const current = get("secret", "docs-sender-accounts"),
-  previous = get("secret", "test-sender-accounts", "secure-delivery-test");
-results.credentials.senderPasswordsPreserved = ["sender-a", "sender-b"].every(
-  (n) => current.data[n] === previous.data[n],
-);
-assert(results.credentials.senderPasswordsPreserved);
+const current = get("secret", "docs-sender-accounts");
+assert(["sender-a", "sender-b", "denied-user"].every((n) => current.data[n]));
+results.credentials.senderAccountsPresent = true;
+if (compareAccounts) {
+  const [namespace, name] = compareAccounts
+    .slice("--compare-accounts=".length)
+    .split("/");
+  const previous = get("secret", name, namespace);
+  results.credentials.senderPasswordsPreserved = ["sender-a", "sender-b"].every(
+    (n) => current.data[n] === previous.data[n],
+  );
+  assert(results.credentials.senderPasswordsPreserved);
+}
 const account = `system:serviceaccount:${ns}:docs-certificate-reload`;
 const permission = spawnSync(
   "oc",
@@ -168,5 +183,5 @@ writeFileSync(
   JSON.stringify(results, null, 2) + "\n",
 );
 console.log(
-  "Docs verified: TLS, ready workloads, namespace naming, docs realm, retained sender passwords, and restricted runtime.",
+  "Docs verified: TLS, ready workloads, namespace naming, docs realm, sender account Secrets, and restricted runtime. Password comparison runs only when --compare-accounts is supplied.",
 );

@@ -2,6 +2,8 @@
 
 A browser-encrypted, single-tenant document delivery application for OpenShift. React/Vite UI, dedicated libsodium worker, Fastify BFF, Keycloak OIDC, PostgreSQL metadata, private ODF S3 ciphertext, and synchronous Microsoft Graph link email.
 
+**Resuming or moving this project to Git?** Start with [CONTEXT.md](CONTEXT.md), the copyable [restart prompt](RESTART-PROMPT.md), and the [Git/rebuild/recovery guide](docs/rebuild.md). Use this application directory as the repository root.
+
 **Implemented and tested locally and in an isolated OpenShift deployment on ACM; production rollout has not been performed.** Read [completion status](docs/status.md) for measured checks and limitations. The application format is unreviewed, not an audited cryptosystem or a SOC 2 certification.
 
 ## Run locally

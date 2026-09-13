@@ -1,0 +1,44 @@
+name: Verify and build
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24.21.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      # The deployment test requires oc. Supply your organization's pinned,
+      # verified oc distribution on the runner; this example uses kubectl's
+      # bundled kustomize through a local wrapper for structural YAML checks.
+      - run: |
+          mkdir -p .local/bin
+          printf '#!/bin/sh\nexec kubectl "$@"\n' > .local/bin/oc
+          chmod +x .local/bin/oc
+          echo "$PWD/.local/bin" >> "$GITHUB_PATH"
+      - run: npm test -- --reporter=default --reporter=json --outputFile=evidence/unit-integration-tests.json
+      - run: npx playwright install --with-deps chrome
+      - run: npm run test:browser
+      - run: npm audit --audit-level=high
+      - run: npm run sbom
+      - run: docker build --file Containerfile --tag delivery:ci .
+      - run: docker build --file deploy/Containerfile.postgres --tag delivery-postgres:ci .
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: verification-evidence
+          path: evidence/
+          retention-days: 30
+  # Publishing and deployment deliberately require a separately authorized
+  # environment with protected credentials and environment approvals. No push,
+  # cluster credentials or live email is configured in this build-only example.
